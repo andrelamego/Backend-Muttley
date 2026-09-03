@@ -63,7 +63,7 @@ public class AuthController {
             }
 
             boolean criarAdmin = !pessoaService.existeAdmin();
-            Pessoa pessoaSalva = pessoaService.salvarOuAtualizar(dto);
+            Pessoa pessoaSalva = pessoaService.salvarOuAtualizar(dto.withId(null));
             pessoaSalva.setRole(criarAdmin ? Role.ADMIN : Role.USER);
             pessoaSalva = pessoaService.salvar(pessoaSalva);
 
