@@ -1,17 +1,15 @@
 package com.fatec.muttley.medalha;
 
+import com.fatec.muttley.participacao.Participacao;
+import com.fatec.muttley.participacao.ParticipacaoService;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
-import com.fatec.muttley.participacao.Participacao;
-import com.fatec.muttley.participacao.ParticipacaoService;
-
-import jakarta.persistence.EntityNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MedalhaService {
@@ -49,9 +47,16 @@ public class MedalhaService {
         return medalhaRepository.findByPessoaIdComDados(pessoaId);
     }
 
+    @Transactional
     public Medalha gerarMedalhaBronzePorPresenca(Participacao participacao) {
         if (participacao == null || participacao.getId() == null || !participacao.isPresente()) {
             throw new IllegalArgumentException("A participacao precisa estar confirmada para receber a medalha.");
+        }
+
+        participacao = participacaoService.procurarPorIdParaAtualizacao(participacao.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Participação não encontrada."));
+        if (!participacao.isPresente()) {
+            throw new IllegalArgumentException("A participação precisa estar confirmada para receber a medalha.");
         }
 
         if (medalhaRepository.existsByParticipacaoIdAndTipo(participacao.getId(), TipoMedalha.BRONZE)) {
@@ -63,9 +68,11 @@ public class MedalhaService {
         medalha.setDescricao("Medalha concedida pela presenca confirmada no evento.");
         medalha.setTipo(TipoMedalha.BRONZE);
         medalha.setParticipacao(participacao);
+        medalha.setParticipacaoPresencaId(participacao.getId());
         return medalhaRepository.save(medalha);
     }
 
+    @Transactional
     public void gerarMedalhasBronzePorPresenca(List<Participacao> participacoes) {
         participacoes.stream()
                 .filter(Participacao::isPresente)

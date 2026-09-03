@@ -39,6 +39,10 @@ public class Medalha {
     @Column(nullable = false, columnDefinition = "varchar(20) default 'BRONZE'")
     private TipoMedalha tipo;
 
+    // Preenchido apenas no bronze automático; medalhas manuais continuam livres.
+    @Column(name = "participacao_presenca_id", unique = true)
+    private Long participacaoPresencaId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_participacao")
     private Participacao participacao;

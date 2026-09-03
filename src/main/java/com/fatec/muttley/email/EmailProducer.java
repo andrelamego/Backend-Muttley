@@ -1,21 +1,22 @@
 package com.fatec.muttley.email;
 
 import com.fatec.muttley.certificado.Certificado;
-import com.fatec.muttley.email.dto.CertificadoEmail;
 import com.fatec.muttley.email.dto.CadastroEmail;
+import com.fatec.muttley.email.dto.CertificadoEmail;
 import com.fatec.muttley.email.dto.EventoEmail;
 import com.fatec.muttley.email.dto.InscricaoEmail;
 import com.fatec.muttley.evento.Evento;
 import com.fatec.muttley.participacao.Participacao;
 import com.fatec.muttley.pessoa.Pessoa;
 import com.fatec.muttley.security.HashIdService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +46,8 @@ public class EmailProducer {
                 evento.getLocal() != null ? evento.getLocal().getNome() : "A definir",
                 participacao.getInscricao()
         );
-        kafkaTemplate.send(TOPIC_INSCRICAO, String.valueOf(participacao.getId()), dto);
+        String chave = String.valueOf(participacao.getId());
+        aposCommit(() -> kafkaTemplate.send(TOPIC_INSCRICAO, chave, dto));
         log.info("Email de confirmação enfileirado: participacaoId={}", participacao.getId());
     }
 
@@ -60,7 +62,8 @@ public class EmailProducer {
                 id,
                 baseUrl
         );
-        kafkaTemplate.send(TOPIC_CREDENCIAIS, String.valueOf(participacao.getId()), dto);
+        String chave = String.valueOf(participacao.getId());
+        aposCommit(() -> kafkaTemplate.send(TOPIC_CREDENCIAIS, chave, dto));
         log.info("Email com credenciais de login enfileirado: participacaoId={}", participacao.getId());
     }
 
@@ -72,7 +75,8 @@ public class EmailProducer {
                     evento.getTema(),
                     evento.getData().toString()
             );
-            kafkaTemplate.send(TOPIC_CANCELADO, String.valueOf(evento.getId()), dto);
+            String chave = String.valueOf(evento.getId());
+            aposCommit(() -> kafkaTemplate.send(TOPIC_CANCELADO, chave, dto));
         });
         log.info("Emails de cancelamento enfileirados: eventoId={}, total={}", evento.getId(), inscritos.size());
     }
@@ -85,7 +89,8 @@ public class EmailProducer {
                     evento.getTema(),
                     evento.getData().toString()
             );
-            kafkaTemplate.send(TOPIC_CONCLUIDO, String.valueOf(evento.getId()), dto);
+            String chave = String.valueOf(evento.getId());
+            aposCommit(() -> kafkaTemplate.send(TOPIC_CONCLUIDO, chave, dto));
         });
         log.info("Emails de conclusão enfileirados: eventoId={}, total={}", evento.getId(), inscritos.size());
     }
@@ -101,8 +106,19 @@ public class EmailProducer {
                     baseUrl,
                     c.getUrlPublica()
             );
-            kafkaTemplate.send(TOPIC_CERTIFICADO, dto);
+            aposCommit(() -> kafkaTemplate.send(TOPIC_CERTIFICADO, dto));
         });
         log.info("Emails com certificados enfileirados: total={}", certificados.size());
+    }
+
+    private void aposCommit(Runnable envio) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override public void afterCommit() { envio.run(); }
+                    });
+        } else {
+            envio.run();
+        }
     }
 }

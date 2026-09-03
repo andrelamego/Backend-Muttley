@@ -1,5 +1,6 @@
 package com.fatec.muttley.evento;
 
+import com.fatec.muttley.certificado.AssinaturaStorage;
 import com.fatec.muttley.certificado.Certificado;
 import com.fatec.muttley.certificado.CertificadoService;
 import com.fatec.muttley.email.EmailProducer;
@@ -17,6 +18,11 @@ import io.github.andrelamego.brValidator.cpf.ValidCpf;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -30,14 +36,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-import java.util.*;
-import java.util.stream.Collectors;
 import org.springframework.web.multipart.MultipartFile;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 public class EventoController {
@@ -68,6 +68,12 @@ public class EventoController {
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
+
+    @Autowired
+    private AssinaturaStorage assinaturaStorage;
+
+    @Autowired
+    private Clock clock = Clock.systemDefaultZone();
 
     @GetMapping("/api/eventos")
     public ResponseEntity<List<EventoPublicoResponse>> listarEventosPublicos() {
@@ -126,8 +132,9 @@ public class EventoController {
     }
 
     @PostMapping("/api/admin/eventos")
+    @Transactional
     public ResponseEntity<Map<String, Object>> criar(@RequestBody @Valid EventoComParticipacaoDTO dto) {
-        AtualizacaoEvento dtoEvento = dto.evento();
+        AtualizacaoEvento dtoEvento = dto.evento().withId(null);
         List<AtualizacaoParticipacaoNovoEvento> dtoNovasParticipacoes = dto.participacoes();
 
         Evento eventoSalvo = eventoService.salvarOuAtualizar(dtoEvento);
@@ -156,12 +163,13 @@ public class EventoController {
     }
 
     @PutMapping("/api/admin/eventos/{id}")
+    @Transactional
     public ResponseEntity<Map<String, String>> atualizar(@PathVariable Long id,
                                                          @RequestBody @Valid EventoComParticipacaoDTO dto) {
         eventoService.procurarPorId(id)
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
 
-        AtualizacaoEvento dtoEvento = dto.evento();
+        AtualizacaoEvento dtoEvento = dto.evento().withId(id);
         List<AtualizacaoParticipacaoNovoEvento> dtoNovasParticipacoes = dto.participacoes();
 
         Evento eventoSalvo = eventoService.salvarOuAtualizar(dtoEvento);
@@ -264,62 +272,45 @@ public class EventoController {
             @RequestParam(value = "presentes", required = false) List<Long> presentes,
             @RequestParam(value = "file") MultipartFile file) {
 
-        try {
-            Evento evento = eventoService.procurarPorId(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
+        Evento evento = eventoService.procurarPorIdParaAtualizacao(id)
+                .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
 
-            if (evento.getStatus() != StatusEventoEnum.EM_ANDAMENTO) {
-                throw new IllegalStateException("O evento só pode ser concluído quando estiver EM_ANDAMENTO.");
-            }
-
-            // 1. SALVA A IMAGEM PRIMEIRO
-            String diretorioUpload = "uploads/assinaturas/";
-            Path caminhoDiretorio = Paths.get(diretorioUpload);
-            if (!Files.exists(caminhoDiretorio)) {
-                Files.createDirectories(caminhoDiretorio);
-            }
-            String nomeArquivoUnico = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            Path caminhoArquivo = caminhoDiretorio.resolve(nomeArquivoUnico);
-            Files.copy(file.getInputStream(), caminhoArquivo, StandardCopyOption.REPLACE_EXISTING);
-            String caminhoAssinatura = diretorioUpload + nomeArquivoUnico;
-
-            // 2. LÓGICA DE PRESENÇA DOS ALUNOS
-            List<Participacao> participacoesDoEvento = participacaoService.procurarPorEvento(id);
-            Set<Long> participacoesValidas = participacoesDoEvento.stream()
-                    .map(Participacao::getId)
-                    .collect(Collectors.toSet());
-
-            if (presentes != null) {
-                presentes.stream()
-                        .filter(participacoesValidas::contains)
-                        .forEach(participacaoService::marcarPresente);
-            }
-
-            Set<Long> todosPresentes = participacaoService.procurarPorEvento(id).stream()
-                    .filter(Participacao::isPresente)
-                    .map(Participacao::getId)
-                    .collect(Collectors.toSet());
-
-            medalhaService.gerarMedalhasBronzePorPresenca(
-                    participacaoService.procurarPorEvento(id)
-            );
-
-            // 3. GERA OS CERTIFICADOS PASSANDO A IMAGEM (Antes do email!)
-            List<Certificado> certificadosEmail = certificadoService
-                    .gerarCertificadosParaParticipacoes(new ArrayList<>(todosPresentes), caminhoAssinatura);
-
-            eventoService.concluirEvento(id);
-
-            // 4. MANDA OS EMAILS (Agora o PDF vai com a foto carregada!)
-            List<Participacao> inscritos = participacaoService.procurarPorEvento(id);
-            emailProducer.publicarEventoConcluido(evento, inscritos);
-            emailProducer.publicarCertificados(certificadosEmail, frontendUrl);
-
-            return ResponseEntity.ok(Map.of("message", "Evento concluído e certificados gerados com sucesso."));
-
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao concluir evento: " + e.getMessage());
+        if (evento.getStatus() != StatusEventoEnum.EM_ANDAMENTO) {
+            throw new IllegalStateException("O evento só pode ser concluído quando estiver EM_ANDAMENTO.");
         }
+
+        String caminhoAssinatura = assinaturaStorage.salvar(file);
+
+        List<Participacao> participacoesDoEvento = participacaoService.procurarPorEvento(id);
+        Set<Long> participacoesValidas = participacoesDoEvento.stream()
+                .map(Participacao::getId)
+                .collect(Collectors.toSet());
+
+        if (presentes != null) {
+            presentes.stream()
+                    .filter(participacoesValidas::contains)
+                    .forEach(participacaoService::marcarPresente);
+        }
+
+        Set<Long> todosPresentes = participacaoService.procurarPorEvento(id).stream()
+                .filter(Participacao::isPresente)
+                .map(Participacao::getId)
+                .collect(Collectors.toSet());
+
+        medalhaService.gerarMedalhasBronzePorPresenca(
+                participacaoService.procurarPorEvento(id)
+        );
+
+        List<Certificado> certificadosEmail = certificadoService
+                .gerarCertificadosParaParticipacoes(todosPresentes.stream().sorted().toList(), caminhoAssinatura);
+
+        eventoService.concluirEvento(id);
+
+        List<Participacao> inscritos = participacaoService.procurarPorEvento(id);
+        emailProducer.publicarEventoConcluido(evento, inscritos);
+        emailProducer.publicarCertificados(certificadosEmail, frontendUrl);
+
+        return ResponseEntity.ok(Map.of("message", "Evento concluído e certificados gerados com sucesso."));
     }
 
     @PostMapping("/api/eventos/{eventoId}/confirmar-presenca/{cpf}")
@@ -337,11 +328,11 @@ public class EventoController {
             return false;
         }
         try {
-            java.time.LocalDateTime inicioEvento = java.time.LocalDateTime.of(
+            LocalDateTime inicioEvento = LocalDateTime.of(
                     evento.getData(),
-                    java.time.LocalTime.parse(evento.getHorarioInicio())
+                    LocalTime.parse(evento.getHorarioInicio())
             );
-            return !inicioEvento.isAfter(java.time.LocalDateTime.now());
+            return !inicioEvento.isAfter(LocalDateTime.now(clock));
         } catch (RuntimeException exception) {
             return false;
         }

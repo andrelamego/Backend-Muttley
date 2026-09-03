@@ -3,21 +3,23 @@ package com.fatec.muttley.certificado;
 import com.fatec.muttley.participacao.Participacao;
 import com.fatec.muttley.participacao.ParticipacaoService;
 import jakarta.persistence.EntityNotFoundException;
+import java.sql.Date;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.sql.Date;
-import java.time.LocalDate;
-
 @Service
 public class CertificadoService {
+    @Autowired
+    private Clock clock = Clock.systemDefaultZone();
     @Autowired
     private CertificadoRepository certificadoRepository;
 
@@ -98,15 +100,21 @@ public class CertificadoService {
         List<Certificado> certificadosEmail = new ArrayList<Certificado>();
 
         for (Long participacaoId : participacaoIds) {
-            if (participacaoId == null || certificadoRepository.existsByParticipacaoId(participacaoId)) {
+            if (participacaoId == null) {
                 continue;
             }
 
-            Participacao participacao = participacaoService.procurarPorId(participacaoId)
+            Participacao participacao = participacaoService.procurarPorIdParaAtualizacao(participacaoId)
                     .orElseThrow(() -> new EntityNotFoundException("Participação não encontrada com ID: " + participacaoId));
+            if (certificadoRepository.existsByParticipacaoId(participacaoId)) {
+                continue;
+            }
+            if (!participacao.isPresente()) {
+                throw new IllegalStateException("Somente participações presentes podem receber certificado.");
+            }
 
             Certificado certificado = new Certificado();
-            certificado.setDataEmissao(LocalDate.now());
+            certificado.setDataEmissao(LocalDate.now(clock));
             certificado.setAssinatura("Coordenação FATEC");
             certificado.setParticipacao(participacao);
 
