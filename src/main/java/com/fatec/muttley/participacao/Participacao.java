@@ -8,7 +8,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "participacao")
+@Table(name = "participacao", uniqueConstraints = @UniqueConstraint(
+        name = "uk_participacao_evento_pessoa", columnNames = {"id_evento", "id_pessoa"}))
 @Getter
 @Setter
 @NoArgsConstructor

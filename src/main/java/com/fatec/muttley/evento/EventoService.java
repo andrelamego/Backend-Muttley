@@ -9,23 +9,28 @@ import com.fatec.muttley.local.LocalService;
 import com.fatec.muttley.patrocinador.Patrocinador;
 import com.fatec.muttley.patrocinador.PatrocinadorService;
 import jakarta.persistence.EntityNotFoundException;
+import java.sql.Date;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.sql.Date;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-import java.util.List;
-import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class EventoService {
+    @Autowired
+    private Clock clock = Clock.systemDefaultZone();
     @Autowired
     private EventoRepository eventoRepository;
 
@@ -41,11 +46,14 @@ public class EventoService {
     @Autowired
     private EventoMapper eventoMapper;
 
+    @Transactional
     public Evento salvarOuAtualizar(AtualizacaoEvento dto) {
         if (dto.horarioInicio() != null && dto.horarioFim() != null) {
             try {
-                LocalTime inicio = LocalTime.parse(dto.horarioInicio(), DateTimeFormatter.ofPattern("HH:mm"));
-                LocalTime fim = LocalTime.parse(dto.horarioFim(), DateTimeFormatter.ofPattern("HH:mm"));
+                DateTimeFormatter formato = DateTimeFormatter.ofPattern("HH:mm")
+                        .withResolverStyle(ResolverStyle.STRICT);
+                LocalTime inicio = LocalTime.parse(dto.horarioInicio(), formato);
+                LocalTime fim = LocalTime.parse(dto.horarioFim(), formato);
 
                 if (!fim.isAfter(inicio)) {
                     throw new IllegalArgumentException("O horário de fim (" + dto.horarioFim() + ") deve ser posterior ao horário de início (" + dto.horarioInicio() + ").");
@@ -69,11 +77,11 @@ public class EventoService {
         Local local = localService.procurarPorId(dto.localId())
                 .orElseThrow(() -> new EntityNotFoundException("Local não encontrado com ID: " + dto.localId()));
         if (dto.id() != null) {
-            Evento existente = eventoRepository.findById(dto.id())
+            Evento existente = eventoRepository.findByIdParaAtualizacao(dto.id())
                     .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado com ID: " + dto.id()));
             atualizarStatusParaEmAndamentoSeNecessario(existente);
-            if (existente.getStatus() == StatusEventoEnum.FINALIZADO) {
-                throw new IllegalStateException("Eventos finalizados não podem ser alterados.");
+            if (existente.getStatus() == StatusEventoEnum.FINALIZADO || existente.getStatus() == StatusEventoEnum.CANCELADO) {
+                throw new IllegalStateException("Eventos finalizados ou cancelados não podem ser alterados.");
             }
             eventoMapper.updateEntityFromDto(dto, existente);
             existente.setDisciplina(disciplina);
@@ -96,8 +104,9 @@ public class EventoService {
                 .toList();
     }
 
+    @Transactional
     public void cancelarEvento(Long id) {
-        Evento evento = eventoRepository.findById(id)
+        Evento evento = eventoRepository.findByIdParaAtualizacao(id)
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado com ID: " + id));
         atualizarStatusParaEmAndamentoSeNecessario(evento);
 
@@ -112,8 +121,9 @@ public class EventoService {
         eventoRepository.save(evento);
     }
 
+    @Transactional
     public void concluirEvento(Long id) {
-        Evento evento = eventoRepository.findById(id)
+        Evento evento = eventoRepository.findByIdParaAtualizacao(id)
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado com ID: " + id));
         atualizarStatusParaEmAndamentoSeNecessario(evento);
 
@@ -127,6 +137,12 @@ public class EventoService {
 
     public Optional<Evento> procurarPorId(Long id) {
         return eventoRepository.findById(id)
+                .map(this::atualizarStatusParaEmAndamentoSeNecessario);
+    }
+
+    @Transactional
+    public Optional<Evento> procurarPorIdParaAtualizacao(Long id) {
+        return eventoRepository.findByIdParaAtualizacao(id)
                 .map(this::atualizarStatusParaEmAndamentoSeNecessario);
     }
 
@@ -209,7 +225,7 @@ public class EventoService {
                     evento.getData(),
                     LocalTime.parse(evento.getHorarioInicio(), DateTimeFormatter.ofPattern("HH:mm"))
             );
-            return !inicioEvento.isAfter(LocalDateTime.now());
+            return !inicioEvento.isAfter(LocalDateTime.now(clock));
         } catch (RuntimeException exception) {
             return false;
         }
