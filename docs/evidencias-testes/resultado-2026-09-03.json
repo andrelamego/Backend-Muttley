@@ -1,0 +1,18 @@
+{
+  "data": "2026-09-03",
+  "origem": "scripts/testar-requisitos.ps1; Maven Surefire XML e Node TAP",
+  "totalTestes": 228,
+  "totalFalhas": 0,
+  "totalErros": 0,
+  "totalIgnorados": 0,
+  "modulos": [
+    { "modulo": "Backend-Muttley", "codigoSaida": 0, "testes": 186, "falhas": 0, "erros": 0, "ignorados": 0 },
+    { "modulo": "Microservice-Email-Muttley", "codigoSaida": 0, "testes": 10, "falhas": 0, "erros": 0, "ignorados": 0 },
+    { "modulo": "Microservice-Pdf-Muttley", "codigoSaida": 0, "testes": 6, "falhas": 0, "erros": 0, "ignorados": 0 },
+    { "modulo": "Microservice-QrCode-Muttley", "codigoSaida": 0, "testes": 6, "falhas": 0, "erros": 0, "ignorados": 0 },
+    { "modulo": "front-muttley", "codigoSaida": 0, "testes": 20, "falhas": 0, "erros": 0, "ignorados": 0 }
+  ],
+  "testesDeContextoApplicationITExecutados": false,
+  "infraestruturaRealExercitada": false,
+  "percentualCoberturaDeCodigo": null
+}

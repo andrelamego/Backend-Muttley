@@ -15,6 +15,10 @@ O Muttley é uma plataforma para gestão de eventos acadêmicos da FATEC. O sist
 Para a estratégia de validação destes requisitos, consulte o
 [Guia de Implementação de Testes](./guia-de-testes.md).
 
+Para as evidências implementadas em 03/09/2026, consulte os
+[resultados e limites dos testes prioritários](./testes-prioritarios-2026-09-03.md) e a
+[matriz de rastreabilidade](./matriz-requisitos-testes.csv).
+
 ## 2. Perfis de acesso
 
 ### Visitante
@@ -33,6 +37,7 @@ Possui a role `USER`. Além das ações públicas, pode:
 
 - consultar seus dados;
 - consultar suas participações;
+- administrar somente suas próprias participações;
 - consultar seus certificados;
 - consultar suas medalhas.
 
@@ -63,6 +68,8 @@ Possui a role `ADMIN`. Pode:
 
 Todas as sessões são stateless. A autenticação utiliza Bearer Token JWT.
 
+Em `/api/participacoes/**`, USER lista, consulta, cria, altera e exclui somente participações próprias; ADMIN pode administrar as demais. Informar o ID de outra pessoa no corpo não concede acesso.
+
 ## 4. Pessoas e autenticação
 
 ### Requisitos funcionais
@@ -87,6 +94,9 @@ Todas as sessões são stateless. A autenticação utiliza Bearer Token JWT.
 - **RN-AUT-08:** a duração padrão do JWT é de duas horas.
 - **RN-AUT-09:** um cadastro incompleto só pode ser completado uma vez.
 - **RN-AUT-10:** tentativa de completar um cadastro já finalizado retorna `409 Conflict`.
+
+A verificação de email será implementada futuramente. O fluxo atual de completar cadastro e autenticar não exige email verificado.
+
 - **RN-PES-01:** cadastro completo exige nome, email válido, telefone, CPF válido e senha.
 - **RN-PES-02:** uma pessoa pode possuir perfis especializados de aluno, professor, palestrante, organizador ou colaborador.
 
@@ -145,7 +155,7 @@ stateDiagram-v2
 - **RN-EVT-03:** horários devem utilizar o formato `HH:mm`.
 - **RN-EVT-04:** o horário final deve ser posterior ao horário inicial.
 - **RN-EVT-05:** disciplina, patrocinador e local devem existir.
-- **RN-EVT-06:** evento `FINALIZADO` não pode ser atualizado.
+- **RN-EVT-06:** evento `FINALIZADO` ou `CANCELADO` não pode ser atualizado. Em atualizações permitidas, o ID da URL identifica o evento, prevalece sobre o corpo e não é alterado.
 - **RN-EVT-07:** evento `FINALIZADO` não pode ser cancelado.
 - **RN-EVT-08:** evento `CANCELADO` não pode ser cancelado novamente.
 - **RN-EVT-09:** somente evento `EM_ANDAMENTO` pode ser concluído.
@@ -183,6 +193,7 @@ Ao concluir um evento, o sistema deve:
 8. enviar os certificados recém-gerados por email.
 
 IDs de participação que não pertencem ao evento são ignorados.
+Assinaturas devem ser imagens PNG ou JPEG válidas (`.png`, `.jpg` ou `.jpeg`), com extensão, MIME e conteúdo coerentes.
 
 ## 6. Inscrições e participações
 
@@ -192,7 +203,7 @@ IDs de participação que não pertencem ao evento são ignorados.
 - **RF-PAR-02:** receber nome completo, CPF e email na inscrição.
 - **RF-PAR-03:** permitir consulta das participações do usuário autenticado.
 - **RF-PAR-04:** permitir confirmação pública de presença.
-- **RF-PAR-05:** permitir gestão autenticada de participações.
+- **RF-PAR-05:** permitir gestão autenticada de participações; USER administra somente as próprias e ADMIN pode administrar todas.
 
 ### Regras de negócio
 
@@ -208,6 +219,9 @@ IDs de participação que não pertencem ao evento são ignorados.
 - **RN-PAR-10:** uma inscrição bem-sucedida envia email de confirmação.
 - **RN-PAR-11:** pessoa sem senha também recebe email para completar cadastro.
 - **RN-PAR-12:** uma participação deve estar vinculada a uma pessoa e a um evento.
+- **RN-PAR-13:** inscrições encerram quando o total de participantes atinge a capacidade do local do evento, inclusive quando duas solicitações concorrem pela última vaga. A regra também se aplica à criação e transferência pelo CRUD autenticado.
+- **RN-PAR-14:** um inscrito só pode confirmar presença entre dez minutos antes do início e dez minutos após o fim, incluindo os dois limites. Eventos cancelados ou finalizados não aceitam confirmação. O horário exato do início já encerra novas inscrições.
+- **RN-PAR-15:** USER não pode acessar, criar, alterar, excluir ou transferir participações de outra pessoa. Uma presença confirmada não pode ser transferida para outro evento.
 
 ### Confirmação de presença
 
@@ -216,6 +230,7 @@ POST /api/eventos/{eventoId}/confirmar-presenca/{cpf}
 ```
 
 - o CPF deve ser válido;
+- o momento deve estar dentro da janela de tolerância definida em RN-PAR-14;
 - a pessoa deve existir;
 - a pessoa deve estar inscrita no evento;
 - a presença não pode ter sido confirmada anteriormente;
@@ -252,6 +267,7 @@ Confirmação repetida retorna `409 Conflict`.
 - **RN-CER-10:** a assinatura visual é incorporada ao PDF.
 - **RN-CER-11:** somente certificados recém-gerados são publicados para envio por email.
 - **RN-CER-12:** a carga horária é calculada pela diferença entre início e fim do evento.
+- **RN-CER-13:** uploads de assinatura aceitam apenas PNG e JPEG reais, não vazios, com extensão e MIME compatíveis; vale para conclusão, assinatura individual e assinatura por evento.
 
 ### Rotas públicas
 
@@ -353,22 +369,22 @@ Quando o período anterior não possui certificados:
 
 Erros de validação retornam a lista dos campos inválidos na propriedade `erros`.
 
-## 13. Pontos que precisam de decisão
+## 13. Decisões atualizadas e pontos restantes
 
-Os itens abaixo possuem comportamento ambíguo ou proteção insuficiente e devem ser definidos antes de serem tratados como regra permanente:
+Em 03/09/2026 o autor definiu a janela de presença, o limite de vagas, o acesso apenas às próprias participações, imagens JPG/PNG, verificação de email futura e bloqueio de edição de eventos cancelados. Essas decisões estão incorporadas nas regras acima.
 
-1. CPF ainda não possui restrição única no banco.
-2. CPF da inscrição pública não utiliza a mesma validação do cadastro completo.
-3. Número de inscrição usa `maior número + 1`, sujeito a concorrência.
-4. Capacidade do local não limita inscrições.
-5. Evento online também exige local.
-6. Evento cancelado ainda pode ser atualizado.
-7. Rotas de CRUD de participação podem ser acessadas por qualquer usuário autenticado.
-8. Arquivos de assinatura não possuem validação de tamanho e MIME type.
-9. Certificado único por participação não possui constraint no banco.
-10. Medalha bronze única não possui constraint no banco.
-11. Erros de estado podem resultar em `500` por falta de tratamento global.
-12. A atualização de evento precisa definir claramente se o ID válido é o da URL ou o do corpo.
+A implementação passou a reservar números de inscrição em sequência transacional compartilhada entre eventos. Uma reserva cujo cadastro é revertido pode deixar um intervalo; o número reservado não é reutilizado. Inscrição por evento/pessoa e certificado por participação têm restrições únicas. O bronze automático possui uma chave única própria, preservando a concessão de medalhas manuais adicionais.
+
+Ainda precisam de definição ou implementação:
+
+1. Unicidade e normalização de CPF no banco e validação equivalente na inscrição pública.
+2. Política de local/capacidade específica para eventos online, que atualmente também exigem local.
+3. Limite de tamanho das assinaturas como regra de negócio; o limite HTTP configurado no Spring continua aplicável.
+4. Verificação de email/posse do cadastro, explicitamente adiada pelo autor.
+5. Regras de obrigatoriedade e domínio de campos numéricos atualmente primitivos.
+6. Interpretação de primeiro administrador quando já existem cadastros parciais USER.
+
+As mensagens de conclusão/cancelamento são solicitadas após commit. Entrega garantida entre banco e Kafka, recuperação após queda do processo e repetição de mensagens ainda precisam de estratégia própria.
 
 ## 14. Modelo de dados resumido
 

@@ -1,0 +1,75 @@
+{
+  "dataExecucao": "2026-09-03T01:54:00.7392226-03:00",
+  "escopo": "Suite completa dos cinco modulos; backend reexecutado apos ajuste de isolamento e novo caso concorrente",
+  "total": 278.0,
+  "modulos": [
+    {
+      "modulo": "Backend-Muttley",
+      "codigoSaida": 0,
+      "testes": 195,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0
+    },
+    {
+      "modulo": "Backend-Muttley (integracao MySQL)",
+      "codigoSaida": 0,
+      "testes": 41,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0
+    },
+    {
+      "modulo": "Microservice-Email-Muttley",
+      "codigoSaida": 0,
+      "testes": 10,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0
+    },
+    {
+      "modulo": "Microservice-Pdf-Muttley",
+      "codigoSaida": 0,
+      "testes": 6,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0
+    },
+    {
+      "modulo": "Microservice-QrCode-Muttley",
+      "codigoSaida": 0,
+      "testes": 6,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0
+    },
+    {
+      "modulo": "front-muttley",
+      "codigoSaida": 0,
+      "testes": 20,
+      "falhas": 0,
+      "erros": 0,
+      "ignorados": 0
+    }
+  ],
+  "ambiente": {
+    "node": "24.12.0",
+    "java": "21",
+    "maven": "3.9.14",
+    "mysql": "8.4 em container descartavel"
+  },
+  "comandoCompleto": "./scripts/testar-requisitos.ps1 -Integration -Offline",
+  "comandoBackendFinal": "mvn -o -Pintegration verify",
+  "fontes": [
+    "target/surefire-reports/TEST-*.xml",
+    "target/failsafe-reports/TEST-*.xml",
+    "target/relatorios-requisitos/front-muttley.log"
+  ],
+  "limites": [
+    "Kafka e Gmail reais nao exercitados",
+    "PdfClient e QrCodeClient simulados",
+    "Sem E2E de navegador",
+    "Sem migracao do banco existente",
+    "Sem percentual de cobertura de codigo"
+  ]
+}

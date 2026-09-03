@@ -1,5 +1,14 @@
 # Muttley - Guia de Implementação de Testes
 
+**Atualização em 03/09/2026:** os testes prioritários de API, MySQL, concorrência e upload estão implementados.
+Consulte os [resultados atuais e limites](./testes-prioritarios-2026-09-03.md)
+e a [matriz dos 93 requisitos e regras](./matriz-requisitos-testes.csv).
+Este guia também descreve etapas futuras, incluindo E2E de interface e comunicação real entre microsserviços.
+
+Para executar a suíte completa, use `./scripts/testar-requisitos.ps1 -Integration` a partir de `Backend-Muttley`.
+São necessários Java 21, Maven, Node e Docker em execução. O MySQL é criado e removido pelo Testcontainers.
+Somente o backend: `mvn -Pintegration verify`. Sem `-Integration`, o script executa os testes rápidos.
+
 ## 1. Objetivo
 
 Este guia apresenta uma estratégia prática para criar testes confiáveis para o Muttley. Os cenários devem utilizar como referência:
@@ -386,6 +395,8 @@ REST Assured, MockMvc ou Newman podem validar fluxos completos da API no backend
 
 ## 10. Testes de concorrência e idempotência
 
+**Implementado:** os seis cenários abaixo, além da disputa pela última vaga nas rotas pública e autenticada, executam contra MySQL descartável em `RegrasCriticasIT`.
+
 São especialmente importantes:
 
 - duas inscrições simultâneas da mesma pessoa no mesmo evento;
@@ -418,7 +429,9 @@ Use `@TempDir` para evitar escrita na pasta real `uploads/`.
 
 ## 12. Requisitos para testes determinísticos
 
-Antes de ampliar a suíte, recomenda-se:
+**Implementado na suíte prioritária:** Clock configurável nos fluxos de evento, inscrição, presença e emissão automática; diretório de assinatura por propriedade; profile `test` sem dados demonstrativos; MySQL isolado e limpo entre testes; clientes externos simulados e imagens reais em `@TempDir`.
+
+Ao ampliar a suíte, mantenha estes critérios:
 
 1. abstrair `LocalDate.now()` e `LocalDateTime.now()` usando `Clock`;
 2. configurar diretório de upload por propriedade;
