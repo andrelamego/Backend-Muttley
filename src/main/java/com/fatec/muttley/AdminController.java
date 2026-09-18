@@ -5,6 +5,11 @@ import com.fatec.muttley.certificado.CertificadoService;
 import com.fatec.muttley.evento.EventoService;
 import com.fatec.muttley.medalha.MedalhaRepository;
 import com.fatec.muttley.medalha.MedalhaService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "Administração - Dashboard", description = "Painel administrativo com indicadores, gráficos e métricas do sistema")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
@@ -29,6 +36,13 @@ public class AdminController {
     @Autowired
     private MedalhaService medalhaService;
 
+    @Operation(summary = "Carregar dados e estatísticas do painel administrativo",
+            description = "Retorna os próximos eventos, gráficos de certificados emitidos, medalhas por participante e métricas dos últimos 30 dias.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Estatísticas recuperadas com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (requer papel ADMIN)")
+    })
     @GetMapping("/inicio")
     public ResponseEntity<Map<String, Object>> carregarEstatisticasAdmin() {
         Map<String, Object> response = new HashMap<>();

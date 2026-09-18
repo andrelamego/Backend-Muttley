@@ -5,6 +5,8 @@ import com.fatec.muttley.email.EmailProducer;
 import com.fatec.muttley.medalha.MedalhaService;
 import com.fatec.muttley.participacao.*;
 import com.fatec.muttley.qrcode.*;
+import com.fatec.muttley.qrcode.dto.QrCodeRequest;
+import com.fatec.muttley.qrcode.dto.TipoQrCode;
 import com.fatec.muttley.support.ImagensTeste;
 import java.nio.file.*;
 import java.util.*;
@@ -126,17 +128,28 @@ class EventoControllerTest {
     }
     @ParameterizedTest @ValueSource(booleans={true,false})
     void RF_EVT_09_downloadDosDoisQrCodesRetornaPngComoAnexo(boolean inscricao) {
-        Evento e=evento(CRIADO); e.setQrCodeInscricaoUrl("qr");e.setQrCodeConfirmacaoUrl("qr");
-        when(eventos.procurarPorId(10L)).thenReturn(Optional.of(e)); when(qrClient.baixarQrCode("qr")).thenReturn(new byte[]{1,2});
+        Evento e=evento(CRIADO);
+        when(eventos.procurarPorId(10L)).thenReturn(Optional.of(e)); when(qrClient.gerarQrCode(any())).thenReturn(new byte[]{1,2});
         var response=inscricao?controller.baixarQrCodeInscricao(10L):controller.baixarQrCodeConfirmacao(10L);
         assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.IMAGE_PNG);
         assertThat(response.getHeaders().getContentDisposition().getType()).isEqualTo("attachment");
         assertThat(response.getBody()).containsExactly((byte)1,(byte)2);
+        verify(qrClient).gerarQrCode(new QrCodeRequest(10L,"https://muttley.example.invalid",e.getTema(),
+                inscricao ? TipoQrCode.INSCRICAO : TipoQrCode.CONFIRMACAO));
     }
-    @Test void qrCodeAindaNaoGeradoRetorna404() {
+    @Test void qrCodeSemUrlPersistidaTambemPodeSerGerado() {
         when(eventos.procurarPorId(10L)).thenReturn(Optional.of(evento(CRIADO)));
-        assertThat(controller.baixarQrCodeInscricao(10L).getStatusCode().value()).isEqualTo(404);
-        assertThat(controller.baixarQrCodeConfirmacao(10L).getStatusCode().value()).isEqualTo(404);
-        verifyNoInteractions(qrClient);
+        when(qrClient.gerarQrCode(any())).thenReturn(new byte[]{1});
+        assertThat(controller.baixarQrCodeInscricao(10L).getStatusCode().value()).isEqualTo(200);
+        assertThat(controller.baixarQrCodeConfirmacao(10L).getStatusCode().value()).isEqualTo(200);
+        verify(qrClient,times(2)).gerarQrCode(any());
+    }
+    @Test void falhaDoServicoQrCodeRetorna503SemVazarDetalheInterno() {
+        when(eventos.procurarPorId(10L)).thenReturn(Optional.of(evento(CRIADO)));
+        when(qrClient.gerarQrCode(any())).thenThrow(new RuntimeException("segredo interno"));
+        assertThatThrownBy(() -> controller.baixarQrCodeInscricao(10L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(erro -> assertThat(((ResponseStatusException) erro).getStatusCode().value()).isEqualTo(503))
+                .hasMessageNotContaining("segredo interno");
     }
 }

@@ -1,5 +1,11 @@
 package com.fatec.muttley.patrocinador;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -11,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "Administração - Patrocinadores", description = "Gestão de empresas e parceiros patrocinadores de eventos")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/admin/patrocinadores")
 public class PatrocinadorController {
@@ -21,18 +29,27 @@ public class PatrocinadorController {
     @Autowired
     private PatrocinadorMapper patrocinadorMapper;
 
+    @Operation(summary = "Listar todos os patrocinadores")
     @GetMapping
     public ResponseEntity<List<Patrocinador>> listarTodos() {
         return ResponseEntity.ok(patrocinadorService.procurarTodos());
     }
 
+    @Operation(summary = "Buscar patrocinador por ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Patrocinador encontrado"),
+            @ApiResponse(responseCode = "404", description = "Patrocinador não encontrado")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<AtualizacaoPatrocinador> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<AtualizacaoPatrocinador> buscarPorId(
+            @Parameter(description = "ID do patrocinador") @PathVariable Long id) {
         Patrocinador patrocinador = patrocinadorService.procurarPorId(id)
                 .orElseThrow(() -> new EntityNotFoundException("Patrocinador não encontrado."));
         return ResponseEntity.ok(patrocinadorMapper.toAtualizacaoDto(patrocinador));
     }
 
+    @Operation(summary = "Criar novo patrocinador")
+    @ApiResponse(responseCode = "201", description = "Patrocinador criado com sucesso")
     @PostMapping
     public ResponseEntity<Map<String, String>> criar(@RequestBody @Valid AtualizacaoPatrocinador dto) {
         Patrocinador patrocinadorSalvo = patrocinadorService.salvarOuAtualizar(dto);
@@ -40,9 +57,15 @@ public class PatrocinadorController {
                 .body(Map.of("message", "Patrocinador '" + patrocinadorSalvo.getNome() + "' criado com sucesso."));
     }
 
+    @Operation(summary = "Atualizar patrocinador existente")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Patrocinador atualizado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Patrocinador não encontrado")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, String>> atualizar(@PathVariable Long id,
-                                                         @RequestBody @Valid AtualizacaoPatrocinador dto) {
+    public ResponseEntity<Map<String, String>> atualizar(
+            @Parameter(description = "ID do patrocinador") @PathVariable Long id,
+            @RequestBody @Valid AtualizacaoPatrocinador dto) {
         patrocinadorService.procurarPorId(id)
                 .orElseThrow(() -> new EntityNotFoundException("Patrocinador não encontrado."));
         dto = dto.withId(id);
@@ -50,9 +73,15 @@ public class PatrocinadorController {
         return ResponseEntity.ok(Map.of("message", "Patrocinador '" + patrocinadorSalvo.getNome() + "' atualizado com sucesso."));
     }
 
+    @Operation(summary = "Excluir patrocinador")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Patrocinador excluído com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Patrocinador não encontrado")
+    })
     @DeleteMapping("/{id}")
     @Transactional
-    public ResponseEntity<Map<String, String>> deletar(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> deletar(
+            @Parameter(description = "ID do patrocinador") @PathVariable Long id) {
         patrocinadorService.procurarPorId(id)
                 .orElseThrow(() -> new EntityNotFoundException("Patrocinador não encontrado."));
         patrocinadorService.apagarPorId(id);

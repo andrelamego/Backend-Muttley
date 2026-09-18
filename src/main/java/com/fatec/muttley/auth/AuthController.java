@@ -6,6 +6,12 @@ import com.fatec.muttley.pessoa.Pessoa;
 import com.fatec.muttley.pessoa.PessoaService;
 import com.fatec.muttley.pessoa.Role;
 import com.fatec.muttley.security.JwtService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -22,6 +28,7 @@ import org.springframework.security.oauth2.jwt.*;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Autenticação", description = "Endpoints de autenticação, registro de usuários e emissão de tokens JWT")
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/auth")
@@ -54,6 +61,13 @@ public class AuthController {
     public record LoginResponse(String accessToken, String tokenType, long expiresIn, UsuarioResponse usuario) {
     }
 
+    @Operation(summary = "Registrar novo usuário", description = "Cadastra uma nova pessoa no sistema. Caso seja o primeiro cadastro, assume o papel de ADMIN.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Usuário cadastrado com sucesso",
+                    content = @Content(schema = @Schema(implementation = UsuarioResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+            @ApiResponse(responseCode = "409", description = "Email já cadastrado")
+    })
     @PostMapping("/register")
     public ResponseEntity<?> cadastrarUsuario(@RequestBody @Valid AtualizacaoPessoa dto) {
         try {
@@ -74,6 +88,13 @@ public class AuthController {
         }
     }
 
+    @Operation(summary = "Completar cadastro", description = "Completa o cadastro de uma pessoa previamente registrada definindo a senha.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cadastro completado com sucesso",
+                    content = @Content(schema = @Schema(implementation = UsuarioResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+            @ApiResponse(responseCode = "409", description = "Cadastro já completado anteriormente")
+    })
     @PutMapping("/register")
     public ResponseEntity<?> completarCadastro(@RequestBody @Valid AtualizacaoPessoa dto) {
         try {
@@ -96,6 +117,12 @@ public class AuthController {
         }
     }
 
+    @Operation(summary = "Autenticar usuário (Login)", description = "Valida as credenciais de login e retorna o token JWT de acesso.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Autenticação realizada com sucesso",
+                    content = @Content(schema = @Schema(implementation = LoginResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Email ou senha inválidos")
+    })
     @PostMapping("/login")
     public ResponseEntity<?> validarCredenciais(@RequestBody @Valid LoginRequest loginRequest) {
         try {
