@@ -136,7 +136,7 @@ class EventoServiceTest {
         verify(repository).findProximosEventosFiltrados(List.of(CRIADO,EM_ANDAMENTO,FINALIZADO),null,"",page);
     }
     @Test void RF_EVT_09_persisteQrCodesSeparados() {
-        Evento evento = evento(CRIADO); when(repository.findById(10L)).thenReturn(Optional.of(evento));
+        Evento evento = evento(CRIADO); when(repository.findByIdParaAtualizacao(10L)).thenReturn(Optional.of(evento));
         service.salvarQrCodeInscricaoUrl(10L,"inscricao"); service.salvarQrCodeConfirmacaoUrl(10L,"presenca");
         assertThat(evento.getQrCodeInscricaoUrl()).isEqualTo("inscricao");
         assertThat(evento.getQrCodeConfirmacaoUrl()).isEqualTo("presenca");

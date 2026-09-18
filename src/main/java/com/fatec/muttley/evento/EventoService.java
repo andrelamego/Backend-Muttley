@@ -9,7 +9,6 @@ import com.fatec.muttley.local.LocalService;
 import com.fatec.muttley.patrocinador.Patrocinador;
 import com.fatec.muttley.patrocinador.PatrocinadorService;
 import jakarta.persistence.EntityNotFoundException;
-import java.sql.Date;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -146,9 +145,11 @@ public class EventoService {
                 .map(this::atualizarStatusParaEmAndamentoSeNecessario);
     }
 
-    public List<Evento> procurarTodosOrdenarPorInicio() {
+    @Transactional
+    public List<EventoResumoResponse> procurarTodosOrdenarPorInicio() {
         return eventoRepository.findProximosEventos(statusesAtivos(), PageRequest.of(0, 8)).stream()
                 .map(this::atualizarStatusParaEmAndamentoSeNecessario)
+                .map(EventoResumoResponse::from)
                 .toList();
     }
 
@@ -176,20 +177,22 @@ public class EventoService {
     public long contarEventosAtivosNoPeriodo(LocalDate inicio, LocalDate fim) {
         return eventoRepository.countEventosAtivosNoPeriodo(
                 statusesAtivos(),
-                Date.valueOf(inicio),
-                Date.valueOf(fim)
+                inicio,
+                fim
         );
     }
 
+    @Transactional
     public void salvarQrCodeInscricaoUrl(Long eventoId, String qrCodeUrl) {
-        Evento evento = eventoRepository.findById(eventoId)
+        Evento evento = eventoRepository.findByIdParaAtualizacao(eventoId)
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
         evento.setQrCodeInscricaoUrl(qrCodeUrl);
         eventoRepository.save(evento);
     }
 
+    @Transactional
     public void salvarQrCodeConfirmacaoUrl(Long eventoId, String url) {
-        Evento evento = procurarPorId(eventoId)
+        Evento evento = eventoRepository.findByIdParaAtualizacao(eventoId)
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
         evento.setQrCodeConfirmacaoUrl(url);
         eventoRepository.save(evento);

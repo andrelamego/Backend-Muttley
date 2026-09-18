@@ -9,6 +9,10 @@ Para executar a suíte completa, use `./scripts/testar-requisitos.ps1 -Integrati
 São necessários Java 21, Maven, Node e Docker em execução. O MySQL é criado e removido pelo Testcontainers.
 Somente o backend: `mvn -Pintegration verify`. Sem `-Integration`, o script executa os testes rápidos.
 
+Para reproduzir o banco local MariaDB 10.4.32 em contêiner isolado, execute
+`mvn -Pintegration '-Dmuttley.test.database=mariadb' verify`.
+Consulte as [correções e resultados de integração de 04/09/2026](./correcoes-integracao-2026-09-04.md).
+
 ## 1. Objetivo
 
 Este guia apresenta uma estratégia prática para criar testes confiáveis para o Muttley. Os cenários devem utilizar como referência:

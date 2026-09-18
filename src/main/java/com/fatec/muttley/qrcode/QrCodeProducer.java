@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +35,16 @@ public class QrCodeProducer {
         );
 
         String chave = evento.getId() + "-" + tipo.name();
-        kafkaTemplate.send(TOPIC, chave, dto);
-        log.info("QR Code enfileirado: eventoId={}, tipo={}", evento.getId(), tipo);
+        Runnable envio = () -> {
+            kafkaTemplate.send(TOPIC, chave, dto);
+            log.info("QR Code enfileirado: eventoId={}, tipo={}", evento.getId(), tipo);
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { envio.run(); }
+            });
+        } else {
+            envio.run();
+        }
     }
 }

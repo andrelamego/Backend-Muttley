@@ -40,6 +40,12 @@ import org.springframework.test.context.bean.override.mockito.*;
 import org.springframework.test.web.servlet.*;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.mysql.MySQLContainer;
+import org.testcontainers.mariadb.MariaDBContainer;
+import org.testcontainers.containers.JdbcDatabaseContainer;
+import jakarta.persistence.EntityManagerFactory;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
+import org.hibernate.community.dialect.MariaDBLegacyDialect;
+import org.hibernate.dialect.MySQLDialect;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -66,13 +72,18 @@ class RegrasCriticasIT {
     }
     @TestConfiguration static class TempoConfig {
         @Bean @Primary Relogio relogioDeTeste() { return new Relogio(); }
-        @Bean @ServiceConnection MySQLContainer mysqlDeTeste() {
+        @Bean @ServiceConnection JdbcDatabaseContainer<?> mysqlDeTeste() {
+            if ("mariadb".equals(System.getProperty("muttley.test.database"))) {
+                return new MariaDBContainer("mariadb:10.4.32").withDatabaseName("muttley_test").withUsername("test").withPassword("test");
+            }
             return new MySQLContainer("mysql:8.4").withDatabaseName("muttley_test").withUsername("test").withPassword("test");
         }
     }
     @Autowired MockMvc mvc;
     @Autowired Relogio clock;
     @Autowired JdbcTemplate jdbc;
+    @Autowired EntityManagerFactory entityManagerFactory;
+    @Autowired EventoService eventoService;
     @Autowired TransactionTemplate tx;
     @Autowired PessoaRepository pessoas;
     @Autowired EventoRepository eventos;
@@ -143,6 +154,38 @@ class RegrasCriticasIT {
             assertThat(prontos.await(15,TimeUnit.SECONDS)).isTrue();inicio.countDown();
             return List.of(tarefas.get(0).get(30,TimeUnit.SECONDS),tarefas.get(1).get(30,TimeUnit.SECONDS));
         }
+    }
+
+    @Test void dialetoCorrespondeAoBancoReal() {
+        var dialeto = entityManagerFactory.unwrap(SessionFactoryImplementor.class).getJdbcServices().getDialect();
+        assertThat(dialeto).isInstanceOf("mariadb".equals(System.getProperty("muttley.test.database")) ? MariaDBLegacyDialect.class : MySQLDialect.class);
+    }
+
+    @Test void painelExecutaConsultasDePeriodoComLocalDate() throws Exception {
+        Evento e=evento(10,StatusEventoEnum.CRIADO,"11:00","12:00");
+        Participacao p=inscrito(e,ana,true);
+        Certificado c=new Certificado();c.setParticipacao(p);c.setDataEmissao(LocalDate.of(2026,9,3));c.setCodigoValidacao("painel-localdate");
+        certificados.saveAndFlush(c);
+        LocalDate hoje=LocalDate.of(2026,9,3);
+        assertThat(eventoService.contarEventosAtivosNoPeriodo(hoje,hoje)).isEqualTo(1);
+        assertThat(eventoService.contarEventosAtivosNoPeriodo(hoje.plusDays(1),hoje.plusDays(7))).isZero();
+        assertThat(certificadoService.contarEmitidosDesde(hoje)).isEqualTo(1);
+        assertThat(certificadoService.contarEmitidosEntre(hoje,hoje.plusDays(1))).isEqualTo(1);
+        assertThat(certificadoService.contarEmitidosEntre(hoje.minusDays(1),hoje)).isZero();
+        mvc.perform(get("/api/admin/inicio").header("Authorization",token(admin)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.eventosAtivos").value(1))
+                .andExpect(jsonPath("$.proximosEventos[0].disciplina").value("Programação"))
+                .andExpect(jsonPath("$.proximosEventos[0].local").value("Auditório"))
+                .andExpect(jsonPath("$.proximosEventos[0].participacoes").doesNotExist());
+    }
+
+    @Test void respostasSimultaneasDeQrCodePreservamOsDoisLinks() throws Exception {
+        Evento e=evento(10,StatusEventoEnum.CRIADO,"11:00","12:00");
+        simultaneas(() -> {eventoService.salvarQrCodeInscricaoUrl(e.getId(),"inscricao");return 200;},
+                () -> {eventoService.salvarQrCodeConfirmacaoUrl(e.getId(),"confirmacao");return 200;});
+        Evento salvo=eventos.findById(e.getId()).orElseThrow();
+        assertThat(salvo.getQrCodeInscricaoUrl()).isEqualTo("inscricao");
+        assertThat(salvo.getQrCodeConfirmacaoUrl()).isEqualTo("confirmacao");
     }
 
     @ParameterizedTest @CsvSource({"09:59:59,201","10:00:00,400","10:00:01,400"})
