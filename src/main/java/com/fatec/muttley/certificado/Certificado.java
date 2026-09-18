@@ -54,7 +54,7 @@ public class Certificado {
     private String caminhoPdf;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_participacao")
+    @JoinColumn(name = "id_participacao", unique = true)
     @JsonManagedReference
     private Participacao participacao;
 

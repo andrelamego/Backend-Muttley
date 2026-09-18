@@ -3,14 +3,15 @@ package com.fatec.muttley.config;
 import com.fatec.muttley.pessoa.Pessoa;
 import com.fatec.muttley.pessoa.PessoaRepository;
 import com.fatec.muttley.pessoa.Role;
+import java.util.List;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.List;
-
 @Configuration
+@Profile("!test")
 public class MockDataInitializer {
 
     private final PasswordEncoder passwordEncoder;

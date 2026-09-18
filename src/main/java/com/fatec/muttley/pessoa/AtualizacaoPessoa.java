@@ -1,5 +1,6 @@
 package com.fatec.muttley.pessoa;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.andrelamego.brValidator.cpf.ValidCpf;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -21,6 +22,7 @@ public record AtualizacaoPessoa(
         String cpf,
 
         @NotBlank(message = "Senha e obrigatoria")
+        @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
         String senha
 ) {
         public AtualizacaoPessoa withId(Long id) {

@@ -144,6 +144,7 @@ public class CertificadoPublicoController {
         return Map.of(
                 "certificado", certificado,
                 "assinaturaBase64", assinaturaBase64, // <-- ENVIADO EM TEXTO AQUI
+                "assinaturaMime", certificado.getCaminhoAssinaturaVisual() == null ? "image/png" : AssinaturaStorage.mime(Path.of(certificado.getCaminhoAssinaturaVisual())),
                 "pessoa", participacao != null && participacao.getTipo() != null ? participacao.getTipo() : "participante",
                 "nome", pessoa != null ? pessoa.getNome() : "Participante",
                 "preambulo", "Por participar do evento ",
@@ -213,7 +214,7 @@ public class CertificadoPublicoController {
 
             if (recurso.exists() || recurso.isReadable()) {
                 return ResponseEntity.ok()
-                        .contentType(MediaType.IMAGE_PNG)
+                        .contentType(MediaType.parseMediaType(AssinaturaStorage.mime(caminhoArquivo)))
                         .body(recurso);
             } else {
                 return ResponseEntity.notFound().build();

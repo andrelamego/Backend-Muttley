@@ -7,21 +7,27 @@ import com.fatec.muttley.pessoa.Pessoa;
 import com.fatec.muttley.pessoa.PessoaService;
 import com.fatec.muttley.pessoa.Role;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ParticipacaoService {
+    @Autowired
+    private Clock clock = Clock.systemDefaultZone();
+
+    @Autowired
+    private NumeroInscricaoService numeros;
 
     @Autowired
     private ParticipacaoRepository participacaoRepository;
@@ -35,21 +41,39 @@ public class ParticipacaoService {
     @Autowired
     private EventoService eventoService;
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Participacao salvarOuAtualizar(AtualizacaoParticipacao dto) {
         Pessoa pessoa = pessoaService.procurarPorId(dto.pessoaId())
                 .orElseThrow(() -> new EntityNotFoundException("Pessoa não encontrada com o id: " + dto.pessoaId()));
-        Evento evento = eventoService.procurarPorId(dto.eventoId())
+        Evento evento = eventoService.procurarPorIdParaAtualizacao(dto.eventoId())
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado com o id: " + dto.eventoId()));
 
         if (dto.id() != null) {
             Participacao existente = participacaoRepository.findById(dto.id())
                     .orElseThrow(() -> new EntityNotFoundException("Participação não encontrada com o id: " + dto.id()));
+            if (!existente.getEvento().getId().equals(evento.getId())) {
+                if (existente.isPresente()) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Uma presença confirmada não pode ser transferida para outro evento.");
+                }
+                validarInscricaoAberta(evento);
+                validarVagas(evento);
+            }
+            if ((!existente.getPessoa().getId().equals(pessoa.getId()) || !existente.getEvento().getId().equals(evento.getId()))
+                    && participacaoRepository.existsByEventoIdAndPessoaId(evento.getId(), pessoa.getId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Pessoa ja inscrita neste evento.");
+            }
             participacaoMapper.updateEntityFromDto(dto, existente);
             existente.setPessoa(pessoa);
             existente.setEvento(evento);
             return participacaoRepository.save(existente);
         } else {
+            validarInscricaoAberta(evento);
+            validarVagas(evento);
+            if (participacaoRepository.existsByEventoIdAndPessoaId(evento.getId(), pessoa.getId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Pessoa ja inscrita neste evento.");
+            }
             Participacao novoParticipacao = participacaoMapper.toEntityFromAtualizacao(dto);
+            novoParticipacao.setInscricao(numeros.proximo());
             novoParticipacao.setPessoa(pessoa);
             novoParticipacao.setEvento(evento);
             return participacaoRepository.save(novoParticipacao);
@@ -68,13 +92,12 @@ public class ParticipacaoService {
         return participacaoRepository.findByPessoaIdComDados(pessoaId);
     }
 
+    @Transactional
     public Participacao registrarInscricaoPublica(Long eventoId, InscricaoPublicaRequest dados) {
-        Evento evento = eventoService.procurarPorId(eventoId)
+        Evento evento = eventoService.procurarPorIdParaAtualizacao(eventoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento nao encontrado."));
-
-        if (evento.getStatus() != StatusEventoEnum.CRIADO || inscricoesEncerradas(evento)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Inscricoes encerradas para este evento.");
-        }
+        validarInscricaoAberta(evento);
+        validarVagas(evento);
 
         Pessoa pessoa = resolverPessoa(dados);
         if (participacaoRepository.existsByEventoIdAndPessoaId(eventoId, pessoa.getId())) {
@@ -82,7 +105,7 @@ public class ParticipacaoService {
         }
 
         Participacao participacao = new Participacao();
-        participacao.setInscricao(participacaoRepository.findMaiorNumeroInscricao() + 1);
+        participacao.setInscricao(numeros.proximo());
         participacao.setTipo("Participante");
         participacao.setPessoa(pessoa);
         participacao.setEvento(evento);
@@ -97,12 +120,26 @@ public class ParticipacaoService {
         return participacaoRepository.findById(id);
     }
 
+    @Transactional
+    public Optional<Participacao> procurarPorIdParaAtualizacao(Long id) {
+        return participacaoRepository.findByIdParaAtualizacao(id);
+    }
+
     public Optional<Participacao> procurarPorIdComDados(Long id) {
         return participacaoRepository.findByIdComDados(id);
     }
 
     @Transactional
     public Participacao confirmarPresenca(Long eventoId, String cpf) {
+        Evento evento = eventoService.procurarPorIdParaAtualizacao(eventoId)
+                .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
+        LocalDateTime agora = LocalDateTime.now(clock);
+        LocalDateTime inicio = LocalDateTime.of(evento.getData(), LocalTime.parse(evento.getHorarioInicio())).minusMinutes(10);
+        LocalDateTime fim = LocalDateTime.of(evento.getData(), LocalTime.parse(evento.getHorarioFim())).plusMinutes(10);
+        if (evento.getStatus() == StatusEventoEnum.CANCELADO || evento.getStatus() == StatusEventoEnum.FINALIZADO
+                || agora.isBefore(inicio) || agora.isAfter(fim)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Confirmação de presença fora do período permitido.");
+        }
         Pessoa pessoa = pessoaService.procurarPorCpf(cpf)
                 .orElseThrow(() -> new EntityNotFoundException("Pessoa não encontrada com o cpf: " + cpf));
 
@@ -154,12 +191,26 @@ public class ParticipacaoService {
         if (pessoa.getEmail() == null || pessoa.getEmail().isBlank()) {
             pessoa.setEmail(email);
         }
-        pessoa.setRole(Role.USER);
+        if (pessoa.getRole() == null) {
+            pessoa.setRole(Role.USER);
+        }
         return pessoaService.salvar(pessoa);
     }
 
     private String normalizar(String valor) {
         return valor == null ? "" : valor.trim();
+    }
+
+    private void validarInscricaoAberta(Evento evento) {
+        if (evento.getStatus() != StatusEventoEnum.CRIADO || inscricoesEncerradas(evento)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Inscricoes encerradas para este evento.");
+        }
+    }
+
+    private void validarVagas(Evento evento) {
+        if (evento.getLocal() == null || participacaoRepository.countByEventoId(evento.getId()) >= evento.getLocal().getCapacidade()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "As vagas deste evento estão esgotadas.");
+        }
     }
 
     private boolean inscricoesEncerradas(Evento evento) {
@@ -172,7 +223,7 @@ public class ParticipacaoService {
                     evento.getData(),
                     LocalTime.parse(evento.getHorarioInicio(), DateTimeFormatter.ofPattern("HH:mm"))
             );
-            return !inicioEvento.isAfter(LocalDateTime.now());
+            return !inicioEvento.isAfter(LocalDateTime.now(clock));
         } catch (RuntimeException exception) {
             return false;
         }

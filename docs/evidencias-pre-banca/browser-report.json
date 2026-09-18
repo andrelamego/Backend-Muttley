@@ -1,0 +1,28 @@
+{
+  "mode": "Frontend compilado com respostas HTTP simuladas; sem backend real",
+  "checks": [
+    {
+      "name": "Certificado público sem sessão",
+      "observed": "Redirecionado para /login após consulta de participação protegida",
+      "reproduced": true
+    },
+    {
+      "name": "Evento cancelado com data futura",
+      "signupEnabled": true
+    },
+    {
+      "name": "Lista pública mobile 390px",
+      "horizontalOverflow": false
+    },
+    {
+      "name": "Data de conclusão",
+      "expectedDate": "01/09/2026",
+      "displaysPreviousDay": true
+    },
+    {
+      "name": "Cartão de certificado em mudança de mês",
+      "invalidDate32August": true
+    }
+  ],
+  "pageErrors": []
+}

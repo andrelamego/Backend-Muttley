@@ -7,6 +7,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface PessoaMapper {
     // Converte Entity para DTO (para preencher formulário de edição)
+    @Mapping(target = "senha", ignore = true)
     AtualizacaoPessoa toAtualizacaoDto(Pessoa pessoa);
 
     // Converte DTO para Entity (para criação NOVA - ignora ID)
