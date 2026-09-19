@@ -31,7 +31,7 @@ class AutorizacaoHttpTest {
         @Bean Endpoints endpoints() { return new Endpoints(); }
     }
     @RestController static class Endpoints {
-        @RequestMapping("/api/**") String recurso() { return "ok"; }
+        @RequestMapping({"/api/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"}) String recurso() { return "ok"; }
     }
     @BeforeAll static void iniciar() {
         context=new AnnotationConfigWebApplicationContext();
@@ -46,7 +46,7 @@ class AutorizacaoHttpTest {
         var p=pessoa(1); p.setRole(role);
         return new JwtService(context.getBean(JwtEncoder.class),Duration.ofHours(2)).gerarToken(p);
     }
-    @ParameterizedTest @ValueSource(strings={"/api/eventos","/api/eventos/10","/api/inicio","/api/certificados/codigo","/api/certificados/codigo/download"})
+    @ParameterizedTest @ValueSource(strings={"/api/eventos","/api/eventos/10","/api/inicio","/api/certificados/codigo","/api/certificados/codigo/download","/v3/api-docs","/swagger-ui.html","/swagger-ui/index.html"})
     void consultasPublicasDispensamAutenticacao(String path) throws Exception { mvc.perform(get(path)).andExpect(status().isOk()); }
     @ParameterizedTest @ValueSource(strings={"/api/auth/login","/api/auth/register","/api/eventos/10/inscricoes","/api/eventos/10/confirmar-presenca/52998224725"})
     void operacoesPublicasDispensamAutenticacao(String path) throws Exception { mvc.perform(post(path)).andExpect(status().isOk()); }
