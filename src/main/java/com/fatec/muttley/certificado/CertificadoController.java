@@ -8,12 +8,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,27 +104,8 @@ public class CertificadoController {
     public ResponseEntity<Resource> exibirImagemDaPasta(
             @Parameter(description = "ID do certificado")
             @PathVariable Long id) {
-        try {
-            Certificado certificado = certificadoService.procurarPorId(id)
-                    .orElseThrow(() -> new RuntimeException("Certificado não encontrado"));
-
-            String caminhoString = certificado.getCaminhoAssinaturaVisual();
-            if (caminhoString == null || caminhoString.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Path caminhoArquivo = Paths.get(caminhoString);
-            Resource recurso = new UrlResource(caminhoArquivo.toUri());
-
-            if (recurso.exists() || recurso.isReadable()) {
-                return ResponseEntity.ok()
-                        .contentType(MediaType.parseMediaType(AssinaturaStorage.mime(caminhoArquivo)))
-                        .body(recurso);
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        return certificadoService.procurarPorId(id)
+                .map(certificado -> AssinaturaVisualResponse.carregar(certificado.getCaminhoAssinaturaVisual()))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

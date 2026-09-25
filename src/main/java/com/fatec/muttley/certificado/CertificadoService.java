@@ -96,7 +96,7 @@ public class CertificadoService {
 
     @Transactional
     public List<Certificado> gerarCertificadosParaParticipacoes(List<Long> participacaoIds, String caminhoAssinatura) {
-        List<Certificado> certificadosEmail = new ArrayList<Certificado>();
+        List<Certificado> certificadosEmail = new ArrayList<>();
 
         for (Long participacaoId : participacaoIds) {
             if (participacaoId == null) {
@@ -117,7 +117,6 @@ public class CertificadoService {
             certificado.setAssinatura("Coordenação FATEC");
             certificado.setParticipacao(participacao);
 
-            // GRAVA A ASSINATURA NA RAIZ!
             certificado.setCaminhoAssinaturaVisual(caminhoAssinatura);
 
             preencherDadosPublicos(certificado);
