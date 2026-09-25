@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDate;
 import java.util.List;
 import static com.fatec.muttley.support.Cenarios.*;
@@ -18,18 +17,18 @@ class EmailProducerTest {
     @Test void RN_PAR_10_confirmacaoTemDadosEChaveDaInscricao() {
         KafkaTemplate<String,Object> kafka=mock(KafkaTemplate.class);var p=participacao(42,false);var e=p.getEvento();
         e.setLocal(null);
-        new EmailProducer(kafka).publicarConfirmacaoInscricao(p);
+        new EmailProducer(mock(HashIdService.class),kafka).publicarConfirmacaoInscricao(p);
         verify(kafka).send("email.inscricao.confirmada","42",new InscricaoEmail(p.getPessoa().getEmail(),p.getPessoa().getNome(),e.getTema(),e.getData().toString(),"09:00","11:30","A definir",42));
     }
     @Test void RN_PAR_11_complementacaoUsaIdCodificado() {
-        KafkaTemplate<String,Object> kafka=mock(KafkaTemplate.class);var producer=new EmailProducer(kafka);var p=participacao(1,false);
-        HashIdService hash=mock(HashIdService.class);ReflectionTestUtils.setField(producer,"hashIdService",hash);when(hash.encode(1L)).thenReturn("id-codificado");
+        KafkaTemplate<String,Object> kafka=mock(KafkaTemplate.class);var p=participacao(1,false);
+        HashIdService hash=mock(HashIdService.class);var producer=new EmailProducer(hash,kafka);when(hash.encode(1L)).thenReturn("id-codificado");
         producer.publicarCompletarCadastro(p,"https://example.invalid");
         verify(kafka).send("email.completar.cadastro","1",new CadastroEmail(p.getPessoa().getEmail(),p.getPessoa().getNome(),"id-codificado","https://example.invalid"));
     }
     @ParameterizedTest @ValueSource(booleans={true,false})
     void notificacoesDeEventoIncluemPresentesEAusentes(boolean cancelado) {
-        KafkaTemplate<String,Object> kafka=mock(KafkaTemplate.class);var producer=new EmailProducer(kafka);var e=evento(EM_ANDAMENTO);
+        KafkaTemplate<String,Object> kafka=mock(KafkaTemplate.class);var producer=new EmailProducer(mock(HashIdService.class),kafka);var e=evento(EM_ANDAMENTO);
         var lista=List.of(participacao(1,true),participacao(2,false));
         if(cancelado)producer.publicarEventoCancelado(e,lista);else producer.publicarEventoConcluido(e,lista);
         String topico=cancelado?"email.evento.cancelado":"email.evento.concluido";
@@ -39,12 +38,12 @@ class EmailProducerTest {
     @Test void RN_CER_11_enviaApenasListaRecebidaComUrlPublica() {
         KafkaTemplate<String,Object> kafka=mock(KafkaTemplate.class);var c=new Certificado();var p=participacao(1,true);
         c.setParticipacao(p);c.setDataEmissao(LocalDate.of(2026,9,3));c.setUrlPublica("/certificados/codigo");
-        new EmailProducer(kafka).publicarCertificados(List.of(c),"https://example.invalid");
+        new EmailProducer(mock(HashIdService.class),kafka).publicarCertificados(List.of(c),"https://example.invalid");
         verify(kafka).send("email.certificado",new CertificadoEmail(p.getPessoa().getEmail(),p.getPessoa().getNome(),p.getEvento().getTema(),p.getEvento().getData().toString(),"2026-09-03","https://example.invalid","/certificados/codigo"));
         verifyNoMoreInteractions(kafka);
     }
     @Test void listasVaziasNaoEnviamMensagens() {
-        KafkaTemplate<String,Object> kafka=mock(KafkaTemplate.class);var producer=new EmailProducer(kafka);
+        KafkaTemplate<String,Object> kafka=mock(KafkaTemplate.class);var producer=new EmailProducer(mock(HashIdService.class),kafka);
         producer.publicarCertificados(List.of(),"https://example.invalid");producer.publicarEventoCancelado(evento(CRIADO),List.of());producer.publicarEventoConcluido(evento(EM_ANDAMENTO),List.of());
         verifyNoInteractions(kafka);
     }

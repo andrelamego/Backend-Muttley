@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
 import org.springframework.data.domain.*;
 import java.time.LocalDate;
+import java.time.Clock;
 import java.util.*;
 import static com.fatec.muttley.support.Cenarios.*;
 import static com.fatec.muttley.evento.enums.StatusEventoEnum.*;
@@ -27,6 +28,7 @@ class EventoServiceTest {
     @Mock PatrocinadorService patrocinadores;
     @Mock LocalService locais;
     @Spy EventoMapper mapper = Mappers.getMapper(EventoMapper.class);
+    @Spy Clock clock = Clock.systemDefaultZone();
     @InjectMocks EventoService service;
 
     private void referencias() {

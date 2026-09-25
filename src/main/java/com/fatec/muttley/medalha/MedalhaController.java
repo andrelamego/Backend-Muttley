@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +21,12 @@ import java.util.Map;
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/admin/medalhas")
+@RequiredArgsConstructor
 public class MedalhaController {
 
-    @Autowired
-    private MedalhaService medalhaService;
+    private final MedalhaService medalhaService;
 
-    @Autowired
-    private MedalhaMapper medalhaMapper;
+    private final MedalhaMapper medalhaMapper;
 
     @Operation(summary = "Listar todas as medalhas")
     @GetMapping

@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
+import java.time.Clock;
 import java.util.*;
 import static com.fatec.muttley.support.Cenarios.*;
 import static com.fatec.muttley.evento.enums.StatusEventoEnum.*;
@@ -26,6 +27,7 @@ class ParticipacaoServiceTest {
     @Mock PessoaService pessoas;
     @Mock EventoService eventos;
     @Spy ParticipacaoMapper mapper = Mappers.getMapper(ParticipacaoMapper.class);
+    @Spy Clock clock = Clock.systemDefaultZone();
     @InjectMocks ParticipacaoService service;
     final InscricaoPublicaRequest request = new InscricaoPublicaRequest(" Nome novo ", " 529.982.247-25 ", " TESTE@EXAMPLE.INVALID ");
     private void eventoAberto() { when(eventos.procurarPorIdParaAtualizacao(10L)).thenReturn(Optional.of(evento(CRIADO))); }

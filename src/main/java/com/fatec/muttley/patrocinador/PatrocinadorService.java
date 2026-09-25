@@ -3,19 +3,18 @@ package com.fatec.muttley.patrocinador;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
+@RequiredArgsConstructor
 public class PatrocinadorService {
-    @Autowired
-    private PatrocinadorRepository patrocinadorRepository;
+    private final PatrocinadorRepository patrocinadorRepository;
 
-    @Autowired
-    private PatrocinadorMapper patrocinadorMapper;
+    private final PatrocinadorMapper patrocinadorMapper;
 
     public Patrocinador salvarOuAtualizar(AtualizacaoPatrocinador dto){
         if (dto.id() != null){

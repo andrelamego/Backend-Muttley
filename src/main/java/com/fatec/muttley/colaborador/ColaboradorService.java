@@ -3,19 +3,18 @@ package com.fatec.muttley.colaborador;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
+@RequiredArgsConstructor
 public class ColaboradorService {
-    @Autowired
-    private ColaboradorRepository colaboradorRepository;
+    private final ColaboradorRepository colaboradorRepository;
 
-    @Autowired
-    private ColaboradorMapper colaboradorMapper;
+    private final ColaboradorMapper colaboradorMapper;
 
     public Colaborador salvarOuAtualizar(AtualizacaoColaborador dto){
         if (dto.id() != null){

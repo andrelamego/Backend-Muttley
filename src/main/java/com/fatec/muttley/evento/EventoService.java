@@ -1,6 +1,5 @@
 package com.fatec.muttley.evento;
 
-
 import com.fatec.muttley.disciplina.Disciplina;
 import com.fatec.muttley.disciplina.DisciplinaService;
 import com.fatec.muttley.evento.enums.StatusEventoEnum;
@@ -11,14 +10,13 @@ import com.fatec.muttley.patrocinador.PatrocinadorService;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,23 +25,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class EventoService {
-    @Autowired
-    private Clock clock = Clock.systemDefaultZone();
-    @Autowired
-    private EventoRepository eventoRepository;
+    private final Clock clock;
+    private final EventoRepository eventoRepository;
 
-    @Autowired
-    private DisciplinaService disciplinaService;
+    private final DisciplinaService disciplinaService;
 
-    @Autowired
-    private PatrocinadorService patrocinadorService;
+    private final PatrocinadorService patrocinadorService;
 
-    @Autowired
-    private LocalService localService;
+    private final LocalService localService;
 
-    @Autowired
-    private EventoMapper eventoMapper;
+    private final EventoMapper eventoMapper;
 
     @Transactional
     public Evento salvarOuAtualizar(AtualizacaoEvento dto) {
@@ -210,7 +203,7 @@ public class EventoService {
         if (evento.getStatus() != StatusEventoEnum.CRIADO) {
             return evento;
         }
-        if (!eventoJaComecou(evento)) {
+        if (!HorariosEvento.jaIniciou(evento, clock)) {
             return evento;
         }
 
@@ -218,19 +211,4 @@ public class EventoService {
         return eventoRepository.save(evento);
     }
 
-    private boolean eventoJaComecou(Evento evento) {
-        if (evento.getData() == null || evento.getHorarioInicio() == null || evento.getHorarioInicio().isBlank()) {
-            return false;
-        }
-
-        try {
-            LocalDateTime inicioEvento = LocalDateTime.of(
-                    evento.getData(),
-                    LocalTime.parse(evento.getHorarioInicio(), DateTimeFormatter.ofPattern("HH:mm"))
-            );
-            return !inicioEvento.isAfter(LocalDateTime.now(clock));
-        } catch (RuntimeException exception) {
-            return false;
-        }
-    }
 }

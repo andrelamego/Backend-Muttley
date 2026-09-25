@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,13 +21,12 @@ import java.util.Map;
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/admin/patrocinadores")
+@RequiredArgsConstructor
 public class PatrocinadorController {
 
-    @Autowired
-    private PatrocinadorService patrocinadorService;
+    private final PatrocinadorService patrocinadorService;
 
-    @Autowired
-    private PatrocinadorMapper patrocinadorMapper;
+    private final PatrocinadorMapper patrocinadorMapper;
 
     @Operation(summary = "Listar todos os patrocinadores")
     @GetMapping

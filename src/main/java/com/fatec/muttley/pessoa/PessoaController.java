@@ -15,7 +15,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,31 +27,24 @@ import java.util.Map;
 @Tag(name = "Pessoas e Perfis", description = "Gestão administrativa de pessoas, perfis de atuação e consulta pública de dados para cadastro")
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class PessoaController {
 
-    @Autowired
-    private PessoaService pessoaService;
+    private final PessoaService pessoaService;
 
-    @Autowired
-    private PessoaMapper pessoaMapper;
+    private final PessoaMapper pessoaMapper;
 
-    @Autowired
-    private AlunoService alunoService;
+    private final AlunoService alunoService;
 
-    @Autowired
-    private ProfessorService professorService;
+    private final ProfessorService professorService;
 
-    @Autowired
-    private PalestranteService palestranteService;
+    private final PalestranteService palestranteService;
 
-    @Autowired
-    private OrganizadorService organizadorService;
+    private final OrganizadorService organizadorService;
 
-    @Autowired
-    private ColaboradorService colaboradorService;
+    private final ColaboradorService colaboradorService;
 
-    @Autowired
-    private HashIdService hashIdService;
+    private final HashIdService hashIdService;
 
     @Operation(summary = "Listar alunos (Administração)", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/admin/alunos")

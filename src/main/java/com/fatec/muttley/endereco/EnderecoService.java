@@ -3,19 +3,18 @@ package com.fatec.muttley.endereco;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
+@RequiredArgsConstructor
 public class EnderecoService {
-    @Autowired
-    private EnderecoRepository enderecoRepository;
+    private final EnderecoRepository enderecoRepository;
 
-    @Autowired
-    private EnderecoMapper enderecoMapper;
+    private final EnderecoMapper enderecoMapper;
 
     public Endereco salvarOuAtualizar(AtualizacaoEndereco dto){
         if (dto.id() != null){

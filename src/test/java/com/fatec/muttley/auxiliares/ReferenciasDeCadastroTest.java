@@ -8,19 +8,16 @@ import com.fatec.muttley.professor.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
-import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ReferenciasDeCadastroTest {
     private LocalService localService(LocalRepository repo,EnderecoService enderecos) {
-        var service=new LocalService();ReflectionTestUtils.setField(service,"localRepository",repo);
-        ReflectionTestUtils.setField(service,"enderecoService",enderecos);ReflectionTestUtils.setField(service,"localMapper",Mappers.getMapper(LocalMapper.class));return service;
+        return new LocalService(repo,enderecos,Mappers.getMapper(LocalMapper.class));
     }
     private DisciplinaService disciplinaService(DisciplinaRepository repo,ProfessorRepository professores) {
-        var service=new DisciplinaService();ReflectionTestUtils.setField(service,"disciplinaRepository",repo);
-        ReflectionTestUtils.setField(service,"professorRepository",professores);ReflectionTestUtils.setField(service,"disciplinaMapper",Mappers.getMapper(DisciplinaMapper.class));return service;
+        return new DisciplinaService(repo,professores,Mappers.getMapper(DisciplinaMapper.class));
     }
     @Test void localExigeEnderecoExistente() {
         var repo=mock(LocalRepository.class);var enderecos=mock(EnderecoService.class);
