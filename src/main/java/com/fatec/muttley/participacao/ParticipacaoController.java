@@ -8,10 +8,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Isolation;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,18 +24,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/participacoes")
 @Transactional(isolation = Isolation.READ_COMMITTED)
+@RequiredArgsConstructor
 public class ParticipacaoController {
-    @Autowired
-    private ParticipacaoAcessoService acesso;
+    private final ParticipacaoAcessoService acesso;
 
-    @Autowired
-    private ParticipacaoService participacaoService;
+    private final ParticipacaoService participacaoService;
 
-    @Autowired
-    private ParticipacaoMapper participacaoMapper;
+    private final ParticipacaoMapper participacaoMapper;
 
-    @Autowired
-    private EmailProducer emailProducer;
+    private final EmailProducer emailProducer;
 
     @Operation(summary = "Listar participações permitidas",
             description = "Retorna as participações acessíveis ao usuário atual (todas para ADMIN ou próprias para USER).")

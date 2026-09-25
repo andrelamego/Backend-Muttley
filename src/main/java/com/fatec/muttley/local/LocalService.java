@@ -3,7 +3,7 @@ package com.fatec.muttley.local;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -13,15 +13,13 @@ import com.fatec.muttley.endereco.EnderecoService;
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
+@RequiredArgsConstructor
 public class LocalService {
-    @Autowired
-    private LocalRepository localRepository;
+    private final LocalRepository localRepository;
 
-    @Autowired
-    private EnderecoService enderecoService;
+    private final EnderecoService enderecoService;
 
-    @Autowired
-    private LocalMapper localMapper;
+    private final LocalMapper localMapper;
 
     public Local salvarOuAtualizar(AtualizacaoLocal dto) {
         // Valida se a endereco existe

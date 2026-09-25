@@ -3,19 +3,18 @@ package com.fatec.muttley.organizador;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
+@RequiredArgsConstructor
 public class OrganizadorService {
-    @Autowired
-    private OrganizadorRepository organizadorRepository;
+    private final OrganizadorRepository organizadorRepository;
 
-    @Autowired
-    private OrganizadorMapper organizadorMapper;
+    private final OrganizadorMapper organizadorMapper;
 
     public Organizador salvarOuAtualizar(AtualizacaoOrganizador dto){
         if (dto.id() != null){

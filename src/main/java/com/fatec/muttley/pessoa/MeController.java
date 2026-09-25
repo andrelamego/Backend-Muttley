@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -20,19 +20,16 @@ import org.springframework.web.server.ResponseStatusException;
 @Tag(name = "Meu Perfil", description = "Endpoints de consulta exclusivos do usuário autenticado")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
+@RequiredArgsConstructor
 public class MeController {
 
-    @Autowired
-    private PessoaService pessoaService;
+    private final PessoaService pessoaService;
 
-    @Autowired
-    private CertificadoService certificadoService;
+    private final CertificadoService certificadoService;
 
-    @Autowired
-    private MedalhaService medalhaService;
+    private final MedalhaService medalhaService;
 
-    @Autowired
-    private ParticipacaoService participacaoService;
+    private final ParticipacaoService participacaoService;
 
     @Operation(summary = "Obter dados do usuário autenticado", description = "Retorna os dados cadastrais da pessoa vinculada ao token JWT atual.")
     @ApiResponses({

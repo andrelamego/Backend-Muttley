@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fatec.muttley.evento.EventoService;
+import com.fatec.muttley.pdf.PdfClient;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -13,20 +15,16 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.thymeleaf.TemplateEngine;
 
 class CertificadoAssinaturaVisualTest {
     @TempDir Path diretorio;
 
     private final CertificadoService certificados = mock(CertificadoService.class);
-    private final CertificadoController admin = new CertificadoController();
-    private final CertificadoPublicoController publico = new CertificadoPublicoController();
-
-    @BeforeEach
-    void configurar() {
-        ReflectionTestUtils.setField(admin, "certificadoService", certificados);
-        ReflectionTestUtils.setField(publico, "certificadoService", certificados);
-    }
+    private final CertificadoController admin = new CertificadoController(
+            certificados, mock(EventoService.class), mock(AssinaturaStorage.class));
+    private final CertificadoPublicoController publico = new CertificadoPublicoController(
+            certificados, mock(PdfClient.class), mock(TemplateEngine.class));
 
     @Test
     void certificadoInexistenteRetorna404NasDuasRotas() {

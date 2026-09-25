@@ -10,7 +10,6 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.test.util.ReflectionTestUtils;
 import java.util.*;
 import static com.fatec.muttley.support.Cenarios.*;
 import static org.assertj.core.api.Assertions.*;
@@ -23,10 +22,7 @@ class AuthControllerTest {
     @Mock JwtService tokens;
     AuthController controller;
     @BeforeEach void setup() {
-        controller=new AuthController(mock(JwtDecoder.class));
-        ReflectionTestUtils.setField(controller,"pessoaService",pessoas);
-        ReflectionTestUtils.setField(controller,"passwordEncoder",encoder);
-        ReflectionTestUtils.setField(controller,"jwtService",tokens);
+        controller=new AuthController(pessoas,encoder,tokens,mock(JwtDecoder.class));
     }
     @ParameterizedTest @ValueSource(booleans={false,true})
     void RN_AUT_04_05_primeiroAdministradorEDemaisUsuarios(boolean existeAdmin) {

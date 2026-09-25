@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,16 +21,14 @@ import org.springframework.web.multipart.MultipartFile;
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/admin/certificados")
+@RequiredArgsConstructor
 public class CertificadoController {
 
-    @Autowired
-    private CertificadoService certificadoService;
+    private final CertificadoService certificadoService;
 
-    @Autowired
-    private EventoService eventoService;
+    private final EventoService eventoService;
 
-    @Autowired
-    private AssinaturaStorage assinaturaStorage;
+    private final AssinaturaStorage assinaturaStorage;
 
     @Operation(summary = "Listar dados gerais de certificados",
             description = "Retorna todos os certificados, eventos aguardando emissão e os últimos certificados emitidos.")

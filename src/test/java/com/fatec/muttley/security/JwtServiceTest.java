@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static com.fatec.muttley.support.Cenarios.*;
 import static org.assertj.core.api.Assertions.*;
@@ -13,7 +12,7 @@ import static org.assertj.core.api.Assertions.*;
 class JwtServiceTest {
     // Chave exclusivamente sintética, nunca usada pela aplicação.
     private SecurityConfig config(String secret) {
-        SecurityConfig config=new SecurityConfig(); ReflectionTestUtils.setField(config,"jwtSecret",secret); return config;
+        return new SecurityConfig(secret);
     }
     @Test void RN_AUT_07_08_tokenAssinadoContemIdentidadePerfilEDuasHorasDeValidade() {
         SecurityConfig config=config("chave-exclusiva-de-teste-com-mais-de-32-bytes");

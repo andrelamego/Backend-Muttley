@@ -9,24 +9,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class CertificadoService {
-    @Autowired
-    private Clock clock = Clock.systemDefaultZone();
-    @Autowired
-    private CertificadoRepository certificadoRepository;
+    private final Clock clock;
+    private final CertificadoRepository certificadoRepository;
 
-    @Autowired
-    private ParticipacaoService participacaoService;
+    private final ParticipacaoService participacaoService;
 
-    @Autowired
-    private CertificadoMapper certificadoMapper;
+    private final CertificadoMapper certificadoMapper;
 
     public Certificado salvarOuAtualizar(AtualizacaoCertificado dto) {
         Participacao participacao = participacaoService.procurarPorId(dto.participacaoId())

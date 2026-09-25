@@ -3,7 +3,7 @@ package com.fatec.muttley.disciplina;
 import com.fatec.muttley.professor.Professor;
 import com.fatec.muttley.professor.ProfessorRepository;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -11,15 +11,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class DisciplinaService {
-    @Autowired
-    private DisciplinaRepository disciplinaRepository;
+    private final DisciplinaRepository disciplinaRepository;
 
-    @Autowired
-    private ProfessorRepository professorRepository;
+    private final ProfessorRepository professorRepository;
 
-    @Autowired
-    private DisciplinaMapper disciplinaMapper;
+    private final DisciplinaMapper disciplinaMapper;
 
     public Disciplina salvarOuAtualizar(AtualizacaoDisciplina dto) {
         Professor professor = null;

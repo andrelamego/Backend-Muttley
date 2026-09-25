@@ -3,19 +3,18 @@ package com.fatec.muttley.palestrante;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
+@RequiredArgsConstructor
 public class PalestranteService {
-    @Autowired
-    private PalestranteRepository palestranteRepository;
+    private final PalestranteRepository palestranteRepository;
 
-    @Autowired
-    private PalestranteMapper palestranteMapper;
+    private final PalestranteMapper palestranteMapper;
 
     public Palestrante salvarOuAtualizar(AtualizacaoPalestrante dto){
         if (dto.id() != null){

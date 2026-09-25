@@ -31,8 +31,11 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-    @Value("${muttley.jwt.secret}")
-    private String jwtSecret;
+    private final String jwtSecret;
+
+    public SecurityConfig(@Value("${muttley.jwt.secret}") String jwtSecret) {
+        this.jwtSecret = jwtSecret;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,13 +21,12 @@ import java.util.Map;
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/admin/disciplinas")
+@RequiredArgsConstructor
 public class DisciplinaController {
 
-    @Autowired
-    private DisciplinaService disciplinaService;
+    private final DisciplinaService disciplinaService;
 
-    @Autowired
-    private DisciplinaMapper disciplinaMapper;
+    private final DisciplinaMapper disciplinaMapper;
 
     @Operation(summary = "Listar todas as disciplinas")
     @GetMapping

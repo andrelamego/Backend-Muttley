@@ -21,9 +21,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -41,17 +41,15 @@ import org.thymeleaf.context.Context;
 
 @Tag(name = "Certificados Públicos", description = "Validação, consulta pública, visualização e download de certificados emitidos")
 @Controller
+@RequiredArgsConstructor
 public class CertificadoPublicoController {
     private static final Logger log = LoggerFactory.getLogger(CertificadoPublicoController.class);
 
-    @Autowired
-    private CertificadoService certificadoService;
+    private final CertificadoService certificadoService;
 
-    @Autowired
-    private PdfClient pdfClient;
+    private final PdfClient pdfClient;
 
-    @Autowired
-    private TemplateEngine templateEngine;
+    private final TemplateEngine templateEngine;
 
     @Operation(summary = "Consultar dados públicos do certificado",
             description = "Retorna os detalhes do certificado pelo código de validação, incluindo o link pronto para adição ao perfil do LinkedIn.")

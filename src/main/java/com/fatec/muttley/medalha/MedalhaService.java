@@ -5,22 +5,20 @@ import com.fatec.muttley.participacao.ParticipacaoService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class MedalhaService {
-    @Autowired
-    private MedalhaRepository medalhaRepository;
+    private final MedalhaRepository medalhaRepository;
 
-    @Autowired
-    private ParticipacaoService participacaoService;
+    private final ParticipacaoService participacaoService;
 
-    @Autowired
-    private MedalhaMapper medalhaMapper;
+    private final MedalhaMapper medalhaMapper;
 
     public Medalha salvarOuAtualizar(AtualizacaoMedalha dto) {
         Participacao participacao = participacaoService.procurarPorId(dto.participacaoId())

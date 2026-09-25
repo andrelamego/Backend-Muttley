@@ -13,7 +13,6 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.server.ResponseStatusException;
 import org.thymeleaf.TemplateEngine;
@@ -27,13 +26,13 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CertificadoPublicoControllerTest {
     @Mock CertificadoService certificados; @Mock PdfClient pdf;
-    @InjectMocks CertificadoPublicoController controller;
+    CertificadoPublicoController controller;
     @TempDir Path diretorio;
     Certificado certificado;
     @BeforeEach void setup() {
         var resolver=new ClassLoaderTemplateResolver(); resolver.setPrefix("templates/"); resolver.setSuffix(".html"); resolver.setCharacterEncoding("UTF-8");
         var engine=new SpringTemplateEngine(); engine.setTemplateResolver(resolver);
-        ReflectionTestUtils.setField(controller,"templateEngine",engine);
+        controller = new CertificadoPublicoController(certificados,pdf,engine);
         certificado=new Certificado(); certificado.setCodigoValidacao("codigo"); certificado.setParticipacao(participacao(1,true));
         certificado.setDataEmissao(LocalDate.of(2026,9,3));
     }

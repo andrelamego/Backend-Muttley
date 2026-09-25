@@ -3,19 +3,18 @@ package com.fatec.muttley.aluno;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
+@RequiredArgsConstructor
 public class AlunoService {
-    @Autowired
-    private AlunoRepository alunoRepository;
+    private final AlunoRepository alunoRepository;
 
-    @Autowired
-    private AlunoMapper alunoMapper;
+    private final AlunoMapper alunoMapper;
 
     public Aluno salvarOuAtualizar(AtualizacaoAluno dto){
         if (dto.id() != null){

@@ -5,13 +5,13 @@ import com.fatec.muttley.evento.enums.StatusEventoEnum;
 import com.fatec.muttley.participacao.*;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDate;
+import java.time.Clock;
 import java.util.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static com.fatec.muttley.support.Cenarios.*;
 import static org.assertj.core.api.Assertions.*;
@@ -22,6 +22,7 @@ class CertificadoServiceTest {
     @Mock CertificadoRepository repository;
     @Mock ParticipacaoService participacoes;
     @Spy CertificadoMapper mapper = Mappers.getMapper(CertificadoMapper.class);
+    @Spy Clock clock = Clock.systemDefaultZone();
     @InjectMocks CertificadoService service;
 
     @Test void RF_CER_01_RN_CER_03_04_05_06_emiteComDadosPublicosEAssinatura() {
@@ -103,9 +104,7 @@ class CertificadoServiceTest {
     }
     @Test void RF_CER_02_listagemAdministrativaAgrupaCertificadosPendenciasERecentes() {
         var certificados=mock(CertificadoService.class);var eventos=mock(EventoService.class);
-        var controller=new CertificadoController();
-        ReflectionTestUtils.setField(controller,"certificadoService",certificados);
-        ReflectionTestUtils.setField(controller,"eventoService",eventos);
+        var controller=new CertificadoController(certificados,eventos,mock(AssinaturaStorage.class));
         var c=new Certificado();var e=evento(StatusEventoEnum.EM_ANDAMENTO);
         when(certificados.procurarTodos()).thenReturn(List.of(c));when(certificados.procurarUltimosEmitidos()).thenReturn(List.of(c));
         when(eventos.procurarEventosAguardandoEmissaoCertificado()).thenReturn(List.of(e));
