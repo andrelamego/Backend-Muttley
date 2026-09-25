@@ -3,7 +3,6 @@ package com.fatec.muttley.certificado;
 import com.fatec.muttley.participacao.Participacao;
 import com.fatec.muttley.participacao.ParticipacaoService;
 import jakarta.persistence.EntityNotFoundException;
-import java.sql.Date;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -66,13 +65,13 @@ public class CertificadoService {
     }
 
     public long contarEmitidosDesde(LocalDate dataInicio) {
-        return certificadoRepository.countByDataEmissaoGreaterThanEqual(Date.valueOf(dataInicio));
+        return certificadoRepository.countByDataEmissaoGreaterThanEqual(dataInicio);
     }
 
     public long contarEmitidosEntre(LocalDate dataInicio, LocalDate dataFimExclusiva) {
         return certificadoRepository.countByDataEmissaoGreaterThanEqualAndDataEmissaoLessThan(
-                Date.valueOf(dataInicio),
-                Date.valueOf(dataFimExclusiva)
+                dataInicio,
+                dataFimExclusiva
         );
     }
 

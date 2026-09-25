@@ -4,6 +4,11 @@ import com.fatec.muttley.evento.Evento;
 import com.fatec.muttley.participacao.Participacao;
 import com.fatec.muttley.pdf.PdfClient;
 import com.fatec.muttley.pessoa.Pessoa;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -21,8 +26,6 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,6 +38,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Map;
 
+@Tag(name = "Certificados Públicos", description = "Validação, consulta pública, visualização e download de certificados emitidos")
 @Controller
 public class CertificadoPublicoController {
     @Autowired
@@ -46,8 +50,15 @@ public class CertificadoPublicoController {
     @Autowired
     private TemplateEngine templateEngine;
 
+    @Operation(summary = "Consultar dados públicos do certificado",
+            description = "Retorna os detalhes do certificado pelo código de validação, incluindo o link pronto para adição ao perfil do LinkedIn.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Certificado encontrado"),
+            @ApiResponse(responseCode = "404", description = "Certificado não encontrado")
+    })
     @GetMapping("/api/certificados/{codigo}")
     public ResponseEntity<Map<String, Object>> dadosCertificadoPublico(
+            @Parameter(description = "Código de validação do certificado", example = "ABC123XYZ")
             @PathVariable String codigo,
             HttpServletRequest request) {
         Certificado certificado = buscarCertificado(codigo);
@@ -57,15 +68,31 @@ public class CertificadoPublicoController {
         ));
     }
 
+    @Operation(summary = "Pré-visualizar PDF do certificado",
+            description = "Gera e exibe o PDF do certificado inline no navegador através do código de validação.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "PDF gerado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Certificado não encontrado")
+    })
     @GetMapping("/api/certificados/{codigo}/preview")
-    public ResponseEntity<byte[]> preview(@PathVariable String codigo, Model model) throws IOException {
+    public ResponseEntity<byte[]> preview(
+            @Parameter(description = "Código de validação do certificado")
+            @PathVariable String codigo, Model model) throws IOException {
         Certificado certificado = buscarCertificado(codigo);
         preencherModelo(certificado, model);
         return gerarPdf(model, "inline");
     }
 
+    @Operation(summary = "Download do PDF do certificado",
+            description = "Gera o PDF do certificado e força o download (attachment) pelo código de validação.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Download iniciado"),
+            @ApiResponse(responseCode = "404", description = "Certificado não encontrado")
+    })
     @GetMapping("/api/certificados/{codigo}/download")
-    public ResponseEntity<byte[]> download(@PathVariable String codigo, Model model) throws IOException {
+    public ResponseEntity<byte[]> download(
+            @Parameter(description = "Código de validação do certificado")
+            @PathVariable String codigo, Model model) throws IOException {
         Certificado certificado = buscarCertificado(codigo);
         preencherModelo(certificado, model);
         return gerarPdf(model, "attachment");
@@ -143,7 +170,7 @@ public class CertificadoPublicoController {
 
         return Map.of(
                 "certificado", certificado,
-                "assinaturaBase64", assinaturaBase64, // <-- ENVIADO EM TEXTO AQUI
+                "assinaturaBase64", assinaturaBase64,
                 "assinaturaMime", certificado.getCaminhoAssinaturaVisual() == null ? "image/png" : AssinaturaStorage.mime(Path.of(certificado.getCaminhoAssinaturaVisual())),
                 "pessoa", participacao != null && participacao.getTipo() != null ? participacao.getTipo() : "participante",
                 "nome", pessoa != null ? pessoa.getNome() : "Participante",
@@ -198,6 +225,12 @@ public class CertificadoPublicoController {
         return "São Paulo, " + dataEmissao.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
 
+    @Operation(summary = "Exibir imagem da assinatura pública",
+            description = "Retorna a imagem da assinatura do certificado a partir do identificador.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Imagem retornada"),
+            @ApiResponse(responseCode = "404", description = "Assinatura ou certificado não encontrado")
+    })
     @GetMapping("/{id}/assinatura-visual")
     public ResponseEntity<Resource> exibirImagemPublica(@PathVariable Long id) {
         try {
@@ -222,6 +255,5 @@ public class CertificadoPublicoController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
-
     }
 }

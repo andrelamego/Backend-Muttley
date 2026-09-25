@@ -3,6 +3,11 @@ package com.fatec.muttley.pessoa;
 import com.fatec.muttley.certificado.CertificadoService;
 import com.fatec.muttley.medalha.MedalhaService;
 import com.fatec.muttley.participacao.ParticipacaoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,6 +17,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+@Tag(name = "Meu Perfil", description = "Endpoints de consulta exclusivos do usuário autenticado")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 public class MeController {
 
@@ -27,13 +34,23 @@ public class MeController {
     @Autowired
     private ParticipacaoService participacaoService;
 
+    @Operation(summary = "Obter dados do usuário autenticado", description = "Retorna os dados cadastrais da pessoa vinculada ao token JWT atual.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dados obtidos com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado ou token inválido"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
     @GetMapping("/api/me")
     public ResponseEntity<PessoaMeResponse> buscarUsuarioAutenticado(JwtAuthenticationToken authentication) {
         Pessoa pessoa = pessoaAutenticada(authentication);
-
         return ResponseEntity.ok(PessoaMeResponse.from(pessoa));
     }
 
+    @Operation(summary = "Listar certificados do usuário autenticado", description = "Retorna todos os certificados emitidos para o usuário logado.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de certificados do usuário"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado ou token inválido")
+    })
     @GetMapping("/api/me/certificados")
     public ResponseEntity<List<CertificadoUsuarioResponse>> listarCertificados(JwtAuthenticationToken authentication) {
         Pessoa pessoa = pessoaAutenticada(authentication);
@@ -43,6 +60,11 @@ public class MeController {
         return ResponseEntity.ok(certificados);
     }
 
+    @Operation(summary = "Listar medalhas do usuário autenticado", description = "Retorna todas as medalhas e conquistas obtidas pelo usuário logado.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de medalhas do usuário"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado ou token inválido")
+    })
     @GetMapping("/api/me/medalhas")
     public ResponseEntity<List<MedalhaUsuarioResponse>> listarMedalhas(JwtAuthenticationToken authentication) {
         Pessoa pessoa = pessoaAutenticada(authentication);
@@ -52,6 +74,11 @@ public class MeController {
         return ResponseEntity.ok(medalhas);
     }
 
+    @Operation(summary = "Listar participações do usuário autenticado", description = "Retorna o histórico de inscrições e presenças em eventos do usuário logado.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de participações do usuário"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado ou token inválido")
+    })
     @GetMapping("/api/me/participacoes")
     public ResponseEntity<List<ParticipacaoUsuarioResponse>> listarParticipacoes(JwtAuthenticationToken authentication) {
         Pessoa pessoa = pessoaAutenticada(authentication);

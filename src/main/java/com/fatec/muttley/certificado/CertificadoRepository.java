@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,9 +39,9 @@ public interface CertificadoRepository extends JpaRepository<Certificado, Long> 
     boolean existsByCodigoValidacao(String codigoValidacao);
     boolean existsByParticipacaoId(Long participacaoId);
 
-    long countByDataEmissaoGreaterThanEqual(Date dataInicio);
+    long countByDataEmissaoGreaterThanEqual(LocalDate dataInicio);
 
-    long countByDataEmissaoGreaterThanEqualAndDataEmissaoLessThan(Date dataInicio, Date dataFim);
+    long countByDataEmissaoGreaterThanEqualAndDataEmissaoLessThan(LocalDate dataInicio, LocalDate dataFim);
 
     @Query("""
             select certificado

@@ -2,7 +2,7 @@ package com.fatec.muttley.evento;
 
 import com.fatec.muttley.evento.enums.StatusEventoEnum;
 import jakarta.persistence.LockModeType;
-import java.sql.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -22,6 +22,8 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
     @Query("""
             select evento
             from Evento evento
+            left join fetch evento.disciplina
+            left join fetch evento.local
             where evento.status in :statuses
             order by evento.data asc, evento.horarioInicio asc
             """)
@@ -68,7 +70,7 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
             """)
     long countEventosAtivosNoPeriodo(
             @Param("statuses") List<StatusEventoEnum> statuses,
-            @Param("inicio") Date inicio,
-            @Param("fim") Date fim
+            @Param("inicio") LocalDate inicio,
+            @Param("fim") LocalDate fim
     );
 }

@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static com.fatec.muttley.evento.enums.StatusEventoEnum.*;
 import static com.fatec.muttley.support.Cenarios.*;
@@ -15,6 +17,26 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class QrCodeMensageriaTest {
+    @ParameterizedTest @EnumSource(TipoQrCode.class)
+    void publicaSomenteDepoisDoCommit(TipoQrCode tipo) {
+        KafkaTemplate<String,QrCodeRequest> kafka=mock(KafkaTemplate.class);
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            new QrCodeProducer(kafka).publicar(evento(CRIADO),"https://example.invalid",tipo);
+            verifyNoInteractions(kafka);
+            TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+            verify(kafka).send(eq("qrcode.gerar.request"),eq("10-"+tipo),any(QrCodeRequest.class));
+        } finally {TransactionSynchronizationManager.clearSynchronization();}
+    }
+    @Test void rollbackNaoPublicaQrCodeParaEventoInexistente() {
+        KafkaTemplate<String,QrCodeRequest> kafka=mock(KafkaTemplate.class);
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            new QrCodeProducer(kafka).publicar(evento(CRIADO),"https://example.invalid",TipoQrCode.INSCRICAO);
+            TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+            verifyNoInteractions(kafka);
+        } finally {TransactionSynchronizationManager.clearSynchronization();}
+    }
     @ParameterizedTest @EnumSource(TipoQrCode.class)
     void requestMantemTopicoChaveEDadosDoEvento(TipoQrCode tipo) {
         KafkaTemplate<String,QrCodeRequest> kafka=mock(KafkaTemplate.class);var producer=new QrCodeProducer(kafka);var e=evento(CRIADO);
