@@ -10,7 +10,21 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Base64;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,23 +38,12 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.io.IOException;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Base64;
-import java.util.Map;
 
 @Tag(name = "Certificados Públicos", description = "Validação, consulta pública, visualização e download de certificados emitidos")
 @Controller
 public class CertificadoPublicoController {
+    private static final Logger log = LoggerFactory.getLogger(CertificadoPublicoController.class);
+
     @Autowired
     private CertificadoService certificadoService;
 
@@ -136,8 +139,6 @@ public class CertificadoPublicoController {
 
         byte[] pdfBytes = pdfClient.gerarPdf(htmlProcessado);
 
-        System.out.println("PDF gerado com sucesso!");
-
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition + "; filename=\"certificado.pdf\"")
                 .contentType(MediaType.APPLICATION_PDF)
@@ -158,20 +159,22 @@ public class CertificadoPublicoController {
         Pessoa pessoa = participacao != null ? participacao.getPessoa() : null;
 
         String assinaturaBase64 = "";
+        String assinaturaMime = "image/png";
         if (certificado.getCaminhoAssinaturaVisual() != null && !certificado.getCaminhoAssinaturaVisual().isBlank()) {
             try {
-                Path path = Paths.get(certificado.getCaminhoAssinaturaVisual());
+                Path path = Path.of(certificado.getCaminhoAssinaturaVisual());
                 byte[] imageBytes = Files.readAllBytes(path);
                 assinaturaBase64 = Base64.getEncoder().encodeToString(imageBytes);
-            } catch (Exception e) {
-                System.out.println("Erro ao converter assinatura: " + e.getMessage());
+                assinaturaMime = AssinaturaStorage.mime(path);
+            } catch (IOException | InvalidPathException exception) {
+                log.warn("Não foi possível carregar a assinatura visual do certificado {}: {}", certificado.getId(), exception.getMessage());
             }
         }
 
         return Map.of(
                 "certificado", certificado,
                 "assinaturaBase64", assinaturaBase64,
-                "assinaturaMime", certificado.getCaminhoAssinaturaVisual() == null ? "image/png" : AssinaturaStorage.mime(Path.of(certificado.getCaminhoAssinaturaVisual())),
+                "assinaturaMime", assinaturaMime,
                 "pessoa", participacao != null && participacao.getTipo() != null ? participacao.getTipo() : "participante",
                 "nome", pessoa != null ? pessoa.getNome() : "Participante",
                 "preambulo", "Por participar do evento ",
@@ -213,7 +216,7 @@ public class CertificadoPublicoController {
                 return horas + (horas == 1 ? " hora." : " horas.");
             }
             return horas + "h" + String.format("%02d", minutosRestantes) + ".";
-        } catch (RuntimeException exception) {
+        } catch (DateTimeParseException exception) {
             return "carga horária não informada.";
         }
     }
@@ -233,27 +236,8 @@ public class CertificadoPublicoController {
     })
     @GetMapping("/{id}/assinatura-visual")
     public ResponseEntity<Resource> exibirImagemPublica(@PathVariable Long id) {
-        try {
-            Certificado certificado = certificadoService.procurarPorId(id)
-                    .orElseThrow(() -> new RuntimeException("Certificado não encontrado"));
-
-            String caminhoString = certificado.getCaminhoAssinaturaVisual();
-            if (caminhoString == null || caminhoString.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            Path caminhoArquivo = Paths.get(caminhoString);
-            Resource recurso = new UrlResource(caminhoArquivo.toUri());
-
-            if (recurso.exists() || recurso.isReadable()) {
-                return ResponseEntity.ok()
-                        .contentType(MediaType.parseMediaType(AssinaturaStorage.mime(caminhoArquivo)))
-                        .body(recurso);
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+        return certificadoService.procurarPorId(id)
+                .map(certificado -> AssinaturaVisualResponse.carregar(certificado.getCaminhoAssinaturaVisual()))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

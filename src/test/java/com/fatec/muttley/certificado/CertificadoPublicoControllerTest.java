@@ -72,4 +72,15 @@ class CertificadoPublicoControllerTest {
                 .isInstanceOfSatisfying(ResponseStatusException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(404));
         verifyNoInteractions(pdf);
     }
+
+    @Test void caminhoDeAssinaturaInvalidoNaoImpedeGeracaoDoPdf() throws Exception {
+        certificado.setCaminhoAssinaturaVisual("\0");
+        when(certificados.procurarPorCodigoValidacao("codigo")).thenReturn(Optional.of(certificado));
+        when(pdf.gerarPdf(anyString())).thenReturn(new byte[]{1});
+
+        var model = new ExtendedModelMap();
+        assertThat(controller.preview("codigo", model).getStatusCode().value()).isEqualTo(200);
+        assertThat(model.get("assinaturaBase64")).isEqualTo("");
+        assertThat(model.get("assinaturaMime")).isEqualTo("image/png");
+    }
 }
