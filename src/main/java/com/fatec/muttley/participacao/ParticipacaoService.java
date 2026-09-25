@@ -2,6 +2,7 @@ package com.fatec.muttley.participacao;
 
 import com.fatec.muttley.evento.Evento;
 import com.fatec.muttley.evento.EventoService;
+import com.fatec.muttley.evento.HorariosEvento;
 import com.fatec.muttley.evento.enums.StatusEventoEnum;
 import com.fatec.muttley.pessoa.Pessoa;
 import com.fatec.muttley.pessoa.PessoaService;
@@ -10,10 +11,9 @@ import jakarta.persistence.EntityNotFoundException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,24 +22,19 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
+@RequiredArgsConstructor
 public class ParticipacaoService {
-    @Autowired
-    private Clock clock = Clock.systemDefaultZone();
+    private final Clock clock;
 
-    @Autowired
-    private NumeroInscricaoService numeros;
+    private final NumeroInscricaoService numeros;
 
-    @Autowired
-    private ParticipacaoRepository participacaoRepository;
+    private final ParticipacaoRepository participacaoRepository;
 
-    @Autowired
-    private ParticipacaoMapper participacaoMapper;
+    private final ParticipacaoMapper participacaoMapper;
 
-    @Autowired
-    private PessoaService pessoaService;
+    private final PessoaService pessoaService;
 
-    @Autowired
-    private EventoService eventoService;
+    private final EventoService eventoService;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Participacao salvarOuAtualizar(AtualizacaoParticipacao dto) {
@@ -202,7 +197,7 @@ public class ParticipacaoService {
     }
 
     private void validarInscricaoAberta(Evento evento) {
-        if (evento.getStatus() != StatusEventoEnum.CRIADO || inscricoesEncerradas(evento)) {
+        if (evento.getStatus() != StatusEventoEnum.CRIADO || HorariosEvento.jaIniciou(evento, clock)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Inscricoes encerradas para este evento.");
         }
     }
@@ -213,19 +208,4 @@ public class ParticipacaoService {
         }
     }
 
-    private boolean inscricoesEncerradas(Evento evento) {
-        if (evento.getData() == null || evento.getHorarioInicio() == null || evento.getHorarioInicio().isBlank()) {
-            return false;
-        }
-
-        try {
-            LocalDateTime inicioEvento = LocalDateTime.of(
-                    evento.getData(),
-                    LocalTime.parse(evento.getHorarioInicio(), DateTimeFormatter.ofPattern("HH:mm"))
-            );
-            return !inicioEvento.isAfter(LocalDateTime.now(clock));
-        } catch (RuntimeException exception) {
-            return false;
-        }
-    }
 }

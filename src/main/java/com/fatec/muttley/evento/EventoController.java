@@ -27,11 +27,8 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import java.time.Clock;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -49,45 +46,51 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 public class EventoController {
 
-    @Autowired
-    private EventoService eventoService;
+    private final EventoService eventoService;
 
-    @Autowired
-    private EventoMapper eventoMapper;
+    private final EventoMapper eventoMapper;
 
-    @Autowired
-    private ParticipacaoService participacaoService;
+    private final ParticipacaoService participacaoService;
 
-    @Autowired
-    private QrCodeProducer qrCodeProducer;
+    private final QrCodeProducer qrCodeProducer;
 
-    @Autowired
-    private QrCodeClient qrCodeClient;
+    private final QrCodeClient qrCodeClient;
 
-    @Autowired
-    private CertificadoService certificadoService;
+    private final CertificadoService certificadoService;
 
-    @Autowired
-    private MedalhaService medalhaService;
+    private final MedalhaService medalhaService;
 
-    @Autowired
-    private EmailProducer emailProducer;
+    private final EmailProducer emailProducer;
 
-    @Value("${app.frontend.url}")
-    private String frontendUrl;
+    private final String frontendUrl;
 
-    @Autowired
-    private AssinaturaStorage assinaturaStorage;
+    private final AssinaturaStorage assinaturaStorage;
 
-    @Autowired
-    private Clock clock = Clock.systemDefaultZone();
+    private final Clock clock;
+
+    public EventoController(EventoService eventoService, EventoMapper eventoMapper,
+            ParticipacaoService participacaoService, QrCodeProducer qrCodeProducer, QrCodeClient qrCodeClient,
+            CertificadoService certificadoService, MedalhaService medalhaService, EmailProducer emailProducer,
+            @Value("${app.frontend.url}") String frontendUrl, AssinaturaStorage assinaturaStorage, Clock clock) {
+        this.eventoService = eventoService;
+        this.eventoMapper = eventoMapper;
+        this.participacaoService = participacaoService;
+        this.qrCodeProducer = qrCodeProducer;
+        this.qrCodeClient = qrCodeClient;
+        this.certificadoService = certificadoService;
+        this.medalhaService = medalhaService;
+        this.emailProducer = emailProducer;
+        this.frontendUrl = frontendUrl;
+        this.assinaturaStorage = assinaturaStorage;
+        this.clock = clock;
+    }
 
     @Operation(summary = "Listar eventos públicos disponíveis", description = "Retorna os eventos abertos ou visíveis para inscrição pública.")
     @ApiResponse(responseCode = "200", description = "Lista de eventos públicos retornada com sucesso")
     @GetMapping("/api/eventos")
     public ResponseEntity<List<EventoPublicoResponse>> listarEventosPublicos() {
         List<EventoPublicoResponse> eventos = eventoService.procurarDisponiveisParaInscricao().stream()
-                .map(evento -> EventoPublicoResponse.from(evento, inscricoesEncerradas(evento)))
+                .map(evento -> EventoPublicoResponse.from(evento, HorariosEvento.jaIniciou(evento, clock)))
                 .toList();
         return ResponseEntity.ok(eventos);
     }
@@ -102,7 +105,7 @@ public class EventoController {
             @Parameter(description = "ID do evento") @PathVariable Long id) {
         Evento evento = eventoService.procurarPorId(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado."));
-        return ResponseEntity.ok(EventoPublicoResponse.from(evento, inscricoesEncerradas(evento)));
+        return ResponseEntity.ok(EventoPublicoResponse.from(evento, HorariosEvento.jaIniciou(evento, clock)));
     }
 
     @Operation(summary = "Realizar inscrição pública em evento", description = "Inscreve um participante com nome, email e CPF no evento especificado.")
@@ -418,20 +421,5 @@ public class EventoController {
         Participacao participacao = participacaoService.confirmarPresenca(eventoId, cpf);
         medalhaService.gerarMedalhaBronzePorPresenca(participacao);
         return ResponseEntity.ok("Presença confirmada com sucesso!");
-    }
-
-    private boolean inscricoesEncerradas(Evento evento) {
-        if (evento.getData() == null || evento.getHorarioInicio() == null || evento.getHorarioInicio().isBlank()) {
-            return false;
-        }
-        try {
-            LocalDateTime inicioEvento = LocalDateTime.of(
-                    evento.getData(),
-                    LocalTime.parse(evento.getHorarioInicio())
-            );
-            return !inicioEvento.isAfter(LocalDateTime.now(clock));
-        } catch (RuntimeException exception) {
-            return false;
-        }
     }
 }

@@ -9,6 +9,7 @@ import com.fatec.muttley.qrcode.dto.QrCodeRequest;
 import com.fatec.muttley.qrcode.dto.TipoQrCode;
 import com.fatec.muttley.support.ImagensTeste;
 import java.nio.file.*;
+import java.time.Clock;
 import java.util.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +20,6 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import static com.fatec.muttley.evento.enums.StatusEventoEnum.*;
@@ -32,11 +32,12 @@ class EventoControllerTest {
     @Mock EventoService eventos; @Mock ParticipacaoService participacoes;
     @Mock CertificadoService certificados; @Mock MedalhaService medalhas;
     @Mock EmailProducer emails; @Mock QrCodeProducer qrCodes; @Mock QrCodeClient qrClient;
-    @InjectMocks EventoController controller;
+    EventoController controller;
     @TempDir Path diretorio;
     @BeforeEach void configurar() {
-        ReflectionTestUtils.setField(controller,"frontendUrl","https://muttley.example.invalid");
-        ReflectionTestUtils.setField(controller,"assinaturaStorage",new AssinaturaStorage(diretorio.toString()));
+        controller = new EventoController(eventos, mock(EventoMapper.class), participacoes, qrCodes, qrClient,
+                certificados, medalhas, emails, "https://muttley.example.invalid",
+                new AssinaturaStorage(diretorio.toString()), Clock.systemDefaultZone());
     }
     @Test void RN_EVT_14_criacaoSolicitaOsDoisQrCodes() {
         Evento e=evento(CRIADO); var dto=dadosEvento(null,"09:00","11:00");
