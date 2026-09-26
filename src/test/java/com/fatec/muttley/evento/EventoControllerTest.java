@@ -1,5 +1,6 @@
 package com.fatec.muttley.evento;
 
+import com.fatec.muttley.auth.CadastroConviteService;
 import com.fatec.muttley.certificado.*;
 import com.fatec.muttley.email.EmailProducer;
 import com.fatec.muttley.medalha.MedalhaService;
@@ -32,11 +33,12 @@ class EventoControllerTest {
     @Mock EventoService eventos; @Mock ParticipacaoService participacoes;
     @Mock CertificadoService certificados; @Mock MedalhaService medalhas;
     @Mock EmailProducer emails; @Mock QrCodeProducer qrCodes; @Mock QrCodeClient qrClient;
+    @Mock CadastroConviteService convites;
     EventoController controller;
     @TempDir Path diretorio;
     @BeforeEach void configurar() {
         controller = new EventoController(eventos, mock(EventoMapper.class), participacoes, qrCodes, qrClient,
-                certificados, medalhas, emails, "https://muttley.example.invalid",
+                certificados, medalhas, emails, convites, "https://muttley.example.invalid",
                 new AssinaturaStorage(diretorio.toString()), Clock.systemDefaultZone());
     }
     @Test void RN_EVT_14_criacaoSolicitaOsDoisQrCodes() {
@@ -65,9 +67,10 @@ class EventoControllerTest {
         Participacao p=participacao(1,false); if(!parcial)p.getPessoa().setSenha("hash");
         var request=new InscricaoPublicaRequest("Nome","cpf","teste@example.invalid");
         when(participacoes.registrarInscricaoPublica(10L,request)).thenReturn(p);
+        if (parcial) when(convites.emitir(p.getPessoa())).thenReturn(Optional.of("convite"));
         assertThat(controller.registrarInscricaoPublica(10L,request).getStatusCode().value()).isEqualTo(201);
         verify(emails).publicarConfirmacaoInscricao(p);
-        verify(emails,times(parcial?1:0)).publicarCompletarCadastro(p,"https://muttley.example.invalid");
+        verify(emails,times(parcial?1:0)).publicarCompletarCadastro(p,"https://muttley.example.invalid","convite");
     }
     @Test void RN_EVT_13_cancelamentoNotificaTodosInscritosAposCancelar() {
         Evento e=evento(CRIADO); List<Participacao> inscritos=List.of(participacao(1,true),participacao(2,false));

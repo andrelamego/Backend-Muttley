@@ -14,6 +14,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
 
 @Entity
 @Table(name = "pessoa")
@@ -37,6 +38,13 @@ public class Pessoa {
 
     @JsonIgnore
     private String senha;
+
+    @JsonIgnore
+    @Column(length = 64, unique = true)
+    private String cadastroTokenHash;
+
+    @JsonIgnore
+    private Instant cadastroTokenExpiraEm;
 
     @Enumerated(EnumType.STRING)
     private Role role;

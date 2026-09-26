@@ -2,6 +2,7 @@ package com.fatec.muttley.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fatec.muttley.certificado.*;
+import com.fatec.muttley.email.dto.CadastroEmail;
 import com.fatec.muttley.disciplina.*;
 import com.fatec.muttley.evento.*;
 import com.fatec.muttley.evento.enums.*;
@@ -367,12 +368,29 @@ class RegrasCriticasIT {
         pessoas.deleteAllInBatch();
         var primeiro=new AtualizacaoPessoa(null,"Primeiro","primeiro@example.invalid","11999999999","529.982.247-25","Senha-forte-123");
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of(
-                "nome",primeiro.nome(),"email",primeiro.email(),"telefone",primeiro.telefone(),"cpf",primeiro.cpf(),"senha",primeiro.senha()))))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("ADMIN")).andExpect(jsonPath("$.senha").doesNotExist());
-        var segundo=Map.of("nome","Segundo","email","segundo@example.invalid","telefone","11999999999","cpf","111.444.777-35","senha","Senha-forte-123");
+                "nome",primeiro.nome(),"email",primeiro.email()))))
+                .andExpect(status().isAccepted()).andExpect(jsonPath("$.senha").doesNotExist());
+        assertThat(pessoas.findByEmail(primeiro.email()).orElseThrow().getRole()).isEqualTo(Role.USER);
+        assertThat(pessoas.findByEmail(primeiro.email()).orElseThrow().getSenha()).isNull();
+        assertThat(pessoas.findByEmail(primeiro.email()).orElseThrow().getCpf()).isNull();
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("email",primeiro.email(),"senha",primeiro.senha()))))
+                .andExpect(status().isUnauthorized());
+        var conviteCaptor=org.mockito.ArgumentCaptor.forClass(CadastroEmail.class);
+        verify(kafka).send(eq("email.completar.cadastro"),anyString(),conviteCaptor.capture());
+        String convite=conviteCaptor.getValue().id();
+        var segundo=Map.of("nome","Segundo","email","segundo@example.invalid");
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(segundo)))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.role").value("USER"));
-        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(segundo))).andExpect(status().isConflict());
+                .andExpect(status().isAccepted());
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(segundo))).andExpect(status().isAccepted());
+        var todosConvites=org.mockito.ArgumentCaptor.forClass(CadastroEmail.class);
+        verify(kafka,times(2)).send(eq("email.completar.cadastro"),anyString(),todosConvites.capture());
+        String conviteSegundo=todosConvites.getAllValues().get(1).id();
+        mvc.perform(get("/api/pessoa/dados-cadastro/{token}",conviteSegundo)).andExpect(status().isOk());
+        mvc.perform(put("/api/auth/register").param("token",convite).contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("nome",primeiro.nome(),"email",primeiro.email(),
+                        "telefone",primeiro.telefone(),"cpf",primeiro.cpf(),"senha",primeiro.senha()))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.role").value("USER"));
         String login=mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("email",primeiro.email(),"senha",primeiro.senha()))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tokenType").value("Bearer"))
@@ -390,8 +408,15 @@ class RegrasCriticasIT {
         Pessoa criada=pessoas.findByEmail("novo@example.invalid").orElseThrow();
         assertThat(criada.getSenha()).isNull();assertThat(criada.getRole()).isEqualTo(Role.USER);
         var completo=Map.of("nome","Novo participante","email","novo@example.invalid","cpf","390.533.447-05","telefone","11999999999","senha","Senha-forte-123");
-        mvc.perform(put("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(completo))).andExpect(status().isOk());
-        mvc.perform(put("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(completo))).andExpect(status().isConflict());
+        mvc.perform(put("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(completo))).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/auth/register").param("token","convite-invalido").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(completo))).andExpect(status().isNotFound());
+        var conviteCaptor=org.mockito.ArgumentCaptor.forClass(CadastroEmail.class);
+        verify(kafka).send(eq("email.completar.cadastro"),anyString(),conviteCaptor.capture());
+        String convite=conviteCaptor.getValue().id();
+        mvc.perform(get("/api/pessoa/dados-cadastro/{token}",convite)).andExpect(status().isOk()).andExpect(jsonPath("$.email").value(criada.getEmail()));
+        mvc.perform(put("/api/auth/register").param("token",convite).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(completo))).andExpect(status().isOk());
+        mvc.perform(put("/api/auth/register").param("token",convite).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(completo))).andExpect(status().isNotFound());
+        mvc.perform(get("/api/pessoa/dados-cadastro/{token}",convite)).andExpect(status().isNotFound());
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("email","novo@example.invalid","senha","Senha-forte-123"))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").isNotEmpty());
         verify(kafka).send(eq("email.inscricao.confirmada"),anyString(),any());
@@ -422,7 +447,7 @@ class RegrasCriticasIT {
         var p=inscrito(evento(10,StatusEventoEnum.CRIADO,"11:00","12:00"),ana,false);
         var payload=Map.of("id",ana.getId(),"nome","Nova pessoa","email","nova@example.invalid","telefone","11999999999","cpf","390.533.447-05","senha","Senha-forte-123");
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(payload)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
         assertThat(pessoas.findById(ana.getId()).orElseThrow().getEmail()).isEqualTo(ana.getEmail());
         assertThat(pessoas.findByEmail("nova@example.invalid").orElseThrow().getId()).isNotEqualTo(ana.getId());
         mvc.perform(get("/api/participacoes/{id}",p.getId()).header("Authorization",token(ana))).andExpect(status().isOk());

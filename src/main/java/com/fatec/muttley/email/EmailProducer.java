@@ -8,7 +8,6 @@ import com.fatec.muttley.email.dto.InscricaoEmail;
 import com.fatec.muttley.evento.Evento;
 import com.fatec.muttley.participacao.Participacao;
 import com.fatec.muttley.pessoa.Pessoa;
-import com.fatec.muttley.security.HashIdService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +20,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @RequiredArgsConstructor
 @Slf4j
 public class EmailProducer {
-
-    private final HashIdService hashIdService;
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -49,20 +46,20 @@ public class EmailProducer {
         log.info("Email de confirmação enfileirado: participacaoId={}", participacao.getId());
     }
 
-    public void publicarCompletarCadastro(Participacao participacao, String baseUrl){
-        Pessoa pessoa = participacao.getPessoa();
+    public void publicarCompletarCadastro(Participacao participacao, String baseUrl, String token){
+        publicarCompletarCadastro(participacao.getPessoa(), baseUrl, token);
+    }
 
-        String id = hashIdService.encode(pessoa.getId());
-
+    public void publicarCompletarCadastro(Pessoa pessoa, String baseUrl, String token) {
         var dto = new CadastroEmail(
                 pessoa.getEmail(),
                 pessoa.getNome(),
-                id,
+                token,
                 baseUrl
         );
-        String chave = String.valueOf(participacao.getId());
+        String chave = String.valueOf(pessoa.getId());
         aposCommit(() -> kafkaTemplate.send(TOPIC_CREDENCIAIS, chave, dto));
-        log.info("Email com credenciais de login enfileirado: participacaoId={}", participacao.getId());
+        log.info("Convite de cadastro enfileirado: pessoaId={}", pessoa.getId());
     }
 
     public void publicarEventoCancelado(Evento evento, List<Participacao> inscritos) {
