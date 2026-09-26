@@ -1,10 +1,10 @@
 package com.fatec.muttley.auth;
 
-import com.fatec.muttley.auth.dto.RegisterInfo;
 import com.fatec.muttley.pessoa.AtualizacaoPessoa;
 import com.fatec.muttley.pessoa.Pessoa;
 import com.fatec.muttley.pessoa.PessoaService;
 import com.fatec.muttley.pessoa.Role;
+import com.fatec.muttley.email.EmailProducer;
 import com.fatec.muttley.security.JwtService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,10 +22,11 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.*;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 @Tag(name = "Autenticação", description = "Endpoints de autenticação, registro de usuários e emissão de tokens JWT")
 @RequiredArgsConstructor
@@ -40,6 +41,11 @@ public class AuthController {
     private final JwtService jwtService;
 
     private final JwtDecoder jwtDecoder;
+    private final CadastroConviteService cadastroConviteService;
+    private final EmailProducer emailProducer;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     public record LoginRequest(
             @NotBlank(message = "Email e obrigatorio")
@@ -57,60 +63,42 @@ public class AuthController {
     public record LoginResponse(String accessToken, String tokenType, long expiresIn, UsuarioResponse usuario) {
     }
 
-    @Operation(summary = "Registrar novo usuário", description = "Cadastra uma nova pessoa no sistema. Caso seja o primeiro cadastro, assume o papel de ADMIN.")
+    @Operation(summary = "Solicitar cadastro", description = "Cria uma conta USER pendente e envia um convite para definir a senha.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Usuário cadastrado com sucesso",
-                    content = @Content(schema = @Schema(implementation = UsuarioResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
-            @ApiResponse(responseCode = "409", description = "Email já cadastrado")
+            @ApiResponse(responseCode = "202", description = "Solicitação recebida"),
+            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
     @PostMapping("/register")
-    public ResponseEntity<?> cadastrarUsuario(@RequestBody @Valid AtualizacaoPessoa dto) {
-        try {
-            if (pessoaService.existePorEmail(dto.email())) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body(Map.of("message", "Usuario ja cadastrado com esse email."));
+    @Transactional
+    public ResponseEntity<?> cadastrarUsuario(@RequestBody @Valid SolicitacaoCadastro dto) {
+        Optional<Pessoa> existente = pessoaService.procurarPorEmail(dto.email());
+        if (existente.isPresent()) {
+            if (existente.get().getSenha() == null) {
+                cadastroConviteService.emitir(existente.get())
+                        .ifPresent(token -> emailProducer.publicarCompletarCadastro(existente.get(), frontendUrl, token));
             }
-
-            boolean criarAdmin = !pessoaService.existeAdmin();
-            Pessoa pessoaSalva = pessoaService.salvarOuAtualizar(dto.withId(null));
-            pessoaSalva.setRole(criarAdmin ? Role.ADMIN : Role.USER);
-            pessoaSalva = pessoaService.salvar(pessoaSalva);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(usuarioResponse(pessoaSalva));
-        } catch (EntityNotFoundException exception) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", exception.getMessage()));
+        } else {
+            Pessoa pessoa = new Pessoa();
+            pessoa.setNome(dto.nome());
+            pessoa.setEmail(dto.email());
+            pessoa.setRole(Role.USER);
+            Pessoa salva = pessoaService.salvar(pessoa);
+            cadastroConviteService.emitir(salva)
+                    .ifPresent(token -> emailProducer.publicarCompletarCadastro(salva, frontendUrl, token));
         }
+        return ResponseEntity.accepted().body(Map.of("message", "Se os dados estiverem corretos, enviaremos um convite por email."));
     }
 
-    @Operation(summary = "Completar cadastro", description = "Completa o cadastro de uma pessoa previamente registrada definindo a senha.")
+    @Operation(summary = "Completar cadastro", description = "Completa o cadastro com o convite de uso único enviado por email.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Cadastro completado com sucesso",
                     content = @Content(schema = @Schema(implementation = UsuarioResponse.class))),
-            @ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
-            @ApiResponse(responseCode = "409", description = "Cadastro já completado anteriormente")
+            @ApiResponse(responseCode = "404", description = "Convite inválido ou expirado")
     })
     @PutMapping("/register")
-    public ResponseEntity<?> completarCadastro(@RequestBody @Valid AtualizacaoPessoa dto) {
-        try {
-            Pessoa pessoa = pessoaService.procurarPorEmail(dto.email())
-                    .orElseThrow(() -> new EntityNotFoundException("Usuario nao encontrado com esse email."));
-
-            if (StringUtils.hasText(pessoa.getSenha())) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body(Map.of("message", "Cadastro ja foi completado anteriormente."));
-            }
-
-            dto = dto.withId(pessoa.getId());
-
-            Pessoa pessoaSalva = pessoaService.salvarOuAtualizar(dto);
-
-            return ResponseEntity.ok(usuarioResponse(pessoaSalva));
-        } catch (EntityNotFoundException exception) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", exception.getMessage()));
-        }
+    public ResponseEntity<?> completarCadastro(@RequestParam("token") String token,
+            @RequestBody @Valid AtualizacaoPessoa dto) {
+        return ResponseEntity.ok(usuarioResponse(cadastroConviteService.concluir(token, dto)));
     }
 
     @Operation(summary = "Autenticar usuário (Login)", description = "Valida as credenciais de login e retorna o token JWT de acesso.")

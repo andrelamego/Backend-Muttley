@@ -2,11 +2,11 @@ package com.fatec.muttley.pessoa;
 
 import com.fatec.muttley.aluno.AlunoService;
 import com.fatec.muttley.auth.dto.RegisterInfo;
+import com.fatec.muttley.auth.CadastroConviteService;
 import com.fatec.muttley.colaborador.ColaboradorService;
 import com.fatec.muttley.organizador.OrganizadorService;
 import com.fatec.muttley.palestrante.PalestranteService;
 import com.fatec.muttley.professor.ProfessorService;
-import com.fatec.muttley.security.HashIdService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -44,7 +44,7 @@ public class PessoaController {
 
     private final ColaboradorService colaboradorService;
 
-    private final HashIdService hashIdService;
+    private final CadastroConviteService cadastroConviteService;
 
     @Operation(summary = "Listar alunos (Administração)", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/admin/alunos")
@@ -122,23 +122,15 @@ public class PessoaController {
         return ResponseEntity.ok(Map.of("message", "Pessoa " + id + " foi apagada!"));
     }
 
-    @Operation(summary = "Consultar dados para conclusão de cadastro via hashId",
-            description = "Endpoint público utilizado pelo participante via link de email para preenchimento de cadastro.")
+    @Operation(summary = "Consultar dados para conclusão de cadastro",
+            description = "Consulta dados do participante mediante convite válido enviado por email.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Dados cadastrais retornados"),
-            @ApiResponse(responseCode = "404", description = "Pessoa não encontrada")
+            @ApiResponse(responseCode = "404", description = "Convite inválido ou expirado")
     })
-    @GetMapping("/pessoa/dados-cadastro/{id}")
+    @GetMapping("/pessoa/dados-cadastro/{token}")
     public RegisterInfo getInfo(
-            @Parameter(description = "Código hashId codificado da pessoa") @PathVariable String id) {
-        Long pessoaId = hashIdService.decode(id);
-        Pessoa pessoa = pessoaService.procurarPorId(pessoaId)
-                .orElseThrow(() -> new EntityNotFoundException("Pessoa não encontrada."));
-
-        return new RegisterInfo(
-                pessoa.getNome(),
-                pessoa.getEmail(),
-                pessoa.getCpf()
-        );
+            @Parameter(description = "Token de convite enviado por email") @PathVariable String token) {
+        return cadastroConviteService.consultar(token);
     }
 }

@@ -73,30 +73,30 @@ paths:
     post:
       tags:
         - Autenticação
-      summary: Registrar novo usuário
-      description: Cadastra uma nova pessoa no sistema. Caso seja o primeiro cadastro, assume o papel de ADMIN.
+      summary: Solicitar cadastro
+      description: Cria uma conta USER pendente e envia um convite de uso único para definir a senha.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AtualizacaoPessoa'
+              $ref: '#/components/schemas/SolicitacaoCadastro'
       responses:
-        '201':
-          description: Usuário cadastrado com sucesso
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UsuarioResponse'
+        '202':
+          description: Solicitação recebida
         '400':
           description: Dados inválidos
-        '409':
-          description: Usuário já cadastrado com esse email
     put:
       tags:
         - Autenticação
       summary: Completar cadastro
-      description: Completa o cadastro prévio definindo a senha de acesso.
+      description: Define a senha mediante convite válido de uso único recebido por email.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -111,9 +111,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UsuarioResponse'
         '404':
-          description: Usuário não encontrado
-        '409':
-          description: Cadastro já completado anteriormente
+          description: Convite inválido ou expirado
 
   /api/auth/login:
     post:
@@ -387,13 +385,13 @@ paths:
         '404':
           description: Não encontrada
 
-  /api/pessoa/dados-cadastro/{id}:
+  /api/pessoa/dados-cadastro/{token}:
     get:
       tags:
         - Pessoas e Perfis
-      summary: Consultar dados para conclusão de cadastro via hashId
+      summary: Consultar dados para conclusão de cadastro com convite
       parameters:
-        - name: id
+        - name: token
           in: path
           required: true
           schema:
@@ -1388,6 +1386,16 @@ components:
       description: Insira o token JWT retornado no endpoint /api/auth/login.
 
   schemas:
+    SolicitacaoCadastro:
+      type: object
+      required: [nome, email]
+      properties:
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+
     LoginRequest:
       type: object
       required:
@@ -1437,9 +1445,7 @@ components:
 
     AtualizacaoPessoa:
       type: object
-      required:
-        - nome
-        - email
+      required: [nome, email, telefone, cpf, senha]
       properties:
         id:
           type: integer
@@ -1453,13 +1459,13 @@ components:
           example: maria@fatec.sp.gov.br
         cpf:
           type: string
-          example: '52998224725'
+          example: '529.982.247-25'
+        telefone:
+          type: string
+          example: '11999999999'
         senha:
           type: string
           example: SenhaForte@123
-        ra:
-          type: string
-          example: '1234567890123'
 
     PessoaMeResponse:
       type: object

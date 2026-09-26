@@ -1,5 +1,6 @@
 package com.fatec.muttley.evento;
 
+import com.fatec.muttley.auth.CadastroConviteService;
 import com.fatec.muttley.certificado.AssinaturaStorage;
 import com.fatec.muttley.certificado.Certificado;
 import com.fatec.muttley.certificado.CertificadoService;
@@ -62,6 +63,8 @@ public class EventoController {
 
     private final EmailProducer emailProducer;
 
+    private final CadastroConviteService cadastroConviteService;
+
     private final String frontendUrl;
 
     private final AssinaturaStorage assinaturaStorage;
@@ -71,6 +74,7 @@ public class EventoController {
     public EventoController(EventoService eventoService, EventoMapper eventoMapper,
             ParticipacaoService participacaoService, QrCodeProducer qrCodeProducer, QrCodeClient qrCodeClient,
             CertificadoService certificadoService, MedalhaService medalhaService, EmailProducer emailProducer,
+            CadastroConviteService cadastroConviteService,
             @Value("${app.frontend.url}") String frontendUrl, AssinaturaStorage assinaturaStorage, Clock clock) {
         this.eventoService = eventoService;
         this.eventoMapper = eventoMapper;
@@ -80,6 +84,7 @@ public class EventoController {
         this.certificadoService = certificadoService;
         this.medalhaService = medalhaService;
         this.emailProducer = emailProducer;
+        this.cadastroConviteService = cadastroConviteService;
         this.frontendUrl = frontendUrl;
         this.assinaturaStorage = assinaturaStorage;
         this.clock = clock;
@@ -115,6 +120,7 @@ public class EventoController {
             @ApiResponse(responseCode = "404", description = "Evento não encontrado")
     })
     @PostMapping("/api/eventos/{id}/inscricoes")
+    @Transactional
     public ResponseEntity<Map<String, Object>> registrarInscricaoPublica(
             @Parameter(description = "ID do evento") @PathVariable Long id,
             @RequestBody @Valid InscricaoPublicaRequest dados) {
@@ -122,7 +128,8 @@ public class EventoController {
 
         emailProducer.publicarConfirmacaoInscricao(participacao);
         if(participacao.getPessoa().getSenha() == null){
-            emailProducer.publicarCompletarCadastro(participacao, frontendUrl);
+            cadastroConviteService.emitir(participacao.getPessoa())
+                    .ifPresent(token -> emailProducer.publicarCompletarCadastro(participacao, frontendUrl, token));
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
