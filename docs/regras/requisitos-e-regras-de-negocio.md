@@ -12,12 +12,7 @@ O Muttley é uma plataforma para gestão de eventos acadêmicos da FATEC. O sist
 - gerar QR Codes de inscrição e confirmação de presença;
 - disponibilizar uma área pessoal para cada usuário.
 
-Para a estratégia de validação destes requisitos, consulte o
-[Guia de Implementação de Testes](./guia-de-testes.md).
-
-Para as evidências implementadas em 03/09/2026, consulte os
-[resultados e limites dos testes prioritários](./testes-prioritarios-2026-09-03.md) e a
-[matriz de rastreabilidade](./matriz-requisitos-testes.csv).
+Para validar os requisitos, consulte o [guia de testes](../testes/README.md) e a [matriz de rastreabilidade](../testes/matriz-requisitos-testes.csv). O fluxo de ativação de conta está detalhado em [cadastro por convite](cadastro.md).
 
 ## 2. Perfis de acesso
 
@@ -74,7 +69,7 @@ Em `/api/participacoes/**`, USER lista, consulta, cria, altera e exclui somente 
 
 ### Requisitos funcionais
 
-- **RF-AUT-01:** cadastrar usuário com nome, email, telefone, CPF e senha.
+- **RF-AUT-01:** solicitar cadastro com nome e email e concluir os dados e a senha por convite de uso único.
 - **RF-AUT-02:** autenticar usuário por email e senha.
 - **RF-AUT-03:** emitir JWT após autenticação válida.
 - **RF-AUT-04:** permitir que uma pessoa criada durante uma inscrição complete seu cadastro.
@@ -87,15 +82,15 @@ Em `/api/participacoes/**`, USER lista, consulta, cria, altera e exclui somente 
 - **RN-AUT-01:** o email deve ser único.
 - **RN-AUT-02:** a senha deve ser armazenada com BCrypt.
 - **RN-AUT-03:** a senha nunca deve ser retornada pela API.
-- **RN-AUT-04:** o primeiro usuário cadastrado recebe role `ADMIN`.
-- **RN-AUT-05:** os demais usuários cadastrados recebem role `USER`.
+- **RN-AUT-04:** o administrador inicial é criado pelo bootstrap configurado; o cadastro público nunca concede `ADMIN`.
+- **RN-AUT-05:** contas criadas pelo cadastro público recebem role `USER`.
 - **RN-AUT-06:** credenciais inválidas retornam `401 Unauthorized`.
 - **RN-AUT-07:** o JWT deve conter email, ID do usuário, role, emissão e expiração.
 - **RN-AUT-08:** a duração padrão do JWT é de duas horas.
 - **RN-AUT-09:** um cadastro incompleto só pode ser completado uma vez.
-- **RN-AUT-10:** tentativa de completar um cadastro já finalizado retorna `409 Conflict`.
+- **RN-AUT-10:** convite inválido, expirado ou já consumido retorna `404 Not Found`.
 
-A verificação de email será implementada futuramente. O fluxo atual de completar cadastro e autenticar não exige email verificado.
+Solicitar cadastro retorna `202` sem indicar se o email já existe. A conclusão exige o convite aleatório enviado ao email, válido por 24 horas e armazenado apenas como hash. CPF e email devem corresponder à pessoa vinculada. A verificação geral de email como estado próprio da conta continua futura; o convite de ativação já é exigido.
 
 - **RN-PES-01:** cadastro completo exige nome, email válido, telefone, CPF válido e senha.
 - **RN-PES-02:** uma pessoa pode possuir perfis especializados de aluno, professor, palestrante, organizador ou colaborador.
@@ -380,9 +375,8 @@ Ainda precisam de definição ou implementação:
 1. Unicidade e normalização de CPF no banco e validação equivalente na inscrição pública.
 2. Política de local/capacidade específica para eventos online, que atualmente também exigem local.
 3. Limite de tamanho das assinaturas como regra de negócio; o limite HTTP configurado no Spring continua aplicável.
-4. Verificação de email/posse do cadastro, explicitamente adiada pelo autor.
+4. Verificação geral de email como estado próprio da conta, além do convite de ativação já implementado.
 5. Regras de obrigatoriedade e domínio de campos numéricos atualmente primitivos.
-6. Interpretação de primeiro administrador quando já existem cadastros parciais USER.
 
 As mensagens de conclusão/cancelamento são solicitadas após commit. Entrega garantida entre banco e Kafka, recuperação após queda do processo e repetição de mensagens ainda precisam de estratégia própria.
 

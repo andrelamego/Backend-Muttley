@@ -1,6 +1,6 @@
 # Atualização da massa local de eventos
 
-O script reprograma eventos vencidos para datas relativas ao momento da execução, no fuso `America/Sao_Paulo`. Usa o MySQL local `muttley:3306` e as credenciais de `src/main/resources/application.properties`.
+O script reprograma eventos vencidos para datas relativas ao momento da execução, no fuso `America/Sao_Paulo`. A conexão é lida diretamente de `src/main/resources/application.properties`; o script não executa o carregamento de configuração do Spring.
 
 ## Execução
 
@@ -31,8 +31,7 @@ Antes das alterações, grava `agendas.csv` e `restaurar.sql` em `target/backups
 
 Confira o CSV e o estado do banco antes de executar o SQL de reversão em um cliente MySQL. Ele restaura somente agendas ainda iguais às aplicadas e sem presenças ou certificados. Copie essa pasta para outro local se precisar guardar o histórico: `mvn clean` remove `target`.
 
-## Atualização realizada em 04/09/2026
 
-Foram reprogramados 13 eventos: um em andamento e 12 com inscrições abertas, entre 04/09/2026 e 09/10/2026. Seis eventos com certificados permaneceram como histórico. Os 19 certificados existentes foram preservados.
+## Limitação de configuração
 
-A conferência no MySQL confirmou as agendas gravadas. A API `GET /api/eventos` retornou HTTP 200 com os 12 eventos futuros e `inscricoesEncerradas=false`.
+O script Java ainda não resolve a importação do arquivo privado da raiz nem variáveis de ambiente. Depois da separação da senha local, seu carregamento de configuração precisa ser adaptado antes de usar este procedimento com o ambiente descrito em [configuração do backend](configuracao-backend.md). Não copie credenciais para o arquivo versionado para contornar essa limitação.
