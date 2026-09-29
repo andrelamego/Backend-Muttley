@@ -6,6 +6,7 @@
 | Configurar a API fora do Docker | [Configuração do backend](configuracao-backend.md) |
 | Criar e evoluir o schema | [Migrações com Flyway](migracoes.md) |
 | Criar o administrador inicial | [Cadastro e bootstrap](../regras/cadastro.md) |
+| Popular o ambiente de testes | [Massa completa e cenários](massa-de-testes.md) |
 | Reprogramar eventos de demonstração | [Atualização de massa](atualizacao-massa-eventos.md) |
 | Diagnosticar duplicidades | [Consultas de integridade](sql/verificar-integridade-antes-da-atualizacao.sql) |
 

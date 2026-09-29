@@ -52,6 +52,7 @@ Execute a suíte para obter os números atuais. Relatórios de execuções antig
 | Dashboard e QR | `AdminControllerTest`, `QrCodeClientTest`, `QrCodeMensageriaTest`, `RegrasCriticasIT` | Datas, resumos, publicação após commit, respostas concorrentes, destinos de QR e erros HTTP |
 | Entradas e auxiliares | `RequisitosDeEntradaTest`, `ReferenciasDeCadastroTest`, `PessoaServiceTest` | Validação de dados e referências existentes |
 | Contratos | `OpenApiTest`, testes dos microsserviços e do frontend | Especificação, adaptação de respostas e comportamentos isolados |
+| Massa local | `MassaDadosConfigTest`, `MassaDadosIT` | Ativação explícita, dados coerentes, idempotência, contas e convites |
 
 Os testes de concorrência coordenam solicitações em cenários de última vaga, inscrição duplicada, confirmação, emissão e conclusão. Não substituem ensaios de carga.
 
@@ -65,4 +66,4 @@ Os testes de concorrência coordenam solicitações em cenários de última vaga
 
 ## Manter os testes
 
-Use `Clock` injetável para horários, fixtures isoladas e bancos descartáveis. Não use pessoas reais, e-mails reais ou a base de demonstração para testar emissão/cancelamento. Preserve os IDs de requisitos na matriz, atualize descrições quando mudar uma regra e relate separadamente o que é simulado e o que foi validado com serviços reais.
+Use `Clock` injetável para horários, fixtures isoladas e bancos descartáveis. Não use pessoas reais, e-mails reais ou a base de demonstração para executar as suítes automatizadas. A [massa completa](../operacao/massa-de-testes.md) é destinada às jornadas manuais e usa dados sintéticos. Preserve os IDs de requisitos na matriz, atualize descrições quando mudar uma regra e relate separadamente o que é simulado e o que foi validado com serviços reais.

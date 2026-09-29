@@ -24,6 +24,7 @@ O [índice de documentação](docs/README.md) organiza as referências por assun
 | Cadastro por convite e administrador inicial | [Cadastro](docs/regras/cadastro.md) |
 | Contratos HTTP e microsserviços | [API](docs/api/README.md) e [integrações](docs/api/integracoes.md) |
 | Configuração, dados e execução | [Operação](docs/operacao/README.md) e [migrações](docs/operacao/migracoes.md) |
+| Ambiente com dados fictícios | [Massa completa para testes](docs/operacao/massa-de-testes.md) |
 | Testes e rastreabilidade | [Testes](docs/testes/README.md) |
 | Diagramas do projeto | [Diagramas](docs/diagramas/README.md) |
 
