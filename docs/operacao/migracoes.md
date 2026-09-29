@@ -10,7 +10,7 @@ O primeiro início exige um schema vazio. A adoção de bancos anteriores não f
 
 ## Reiniciar a base local anterior
 
-Como os dados anteriores foram descartados para esta etapa do desenvolvimento, recrie a base antes do primeiro início com Flyway. Para o [Compose](../../../Infra-Muttley/README.md), execute na pasta `Infra-Muttley`:
+Como os dados anteriores foram descartados para esta etapa do desenvolvimento, recrie a base antes do primeiro início com Flyway. Para o [Compose](https://github.com/andrelamego/Infra-Muttley), execute na pasta `Infra-Muttley`:
 
 ```powershell
 docker compose down

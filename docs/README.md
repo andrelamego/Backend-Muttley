@@ -9,6 +9,7 @@ Comece pelo [README do backend](../README.md) para executar o projeto. Este índ
 | `operacao/` | [Execução e dados](operacao/README.md), [configuração](operacao/configuracao-backend.md), [migrações](operacao/migracoes.md) e atualização da massa local |
 | `testes/` | [Execução e limites das suítes](testes/README.md) e [matriz RF/RN → testes](testes/matriz-requisitos-testes.csv) |
 | `diagramas/` | [Casos de uso, classes e entidades](diagramas/README.md) |
+| Versões | [Changelog](../CHANGELOG.md) e [preparação de release](operacao/release.md) |
 
 ## Como manter
 

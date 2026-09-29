@@ -2,9 +2,11 @@
 
 API de gestão de eventos acadêmicos, participações, certificados e medalhas. Usa Java 21, Spring Boot, JPA, MariaDB/MySQL e Kafka. PDF, QR Code e envio de e-mail são serviços separados.
 
+Versão **0.1.0-alpha**, destinada a avaliação e testes. O [changelog](CHANGELOG.md) descreve o escopo e os limites; o [guia de release](docs/operacao/release.md) apresenta a validação, o artefato e a publicação.
+
 ## Começar
 
-Para iniciar API, banco, Kafka e microsserviços juntos, siga o [README da infraestrutura](../Infra-Muttley/README.md). O frontend é executado separadamente em [front-muttley](../front-muttley/README.md).
+Para iniciar API, banco, Kafka e microsserviços juntos, siga o [README da infraestrutura](https://github.com/andrelamego/Infra-Muttley). O frontend é executado separadamente, conforme sua própria configuração.
 
 Para executar somente a API, configure o [ambiente local](docs/operacao/configuracao-backend.md) e rode, na raiz deste repositório:
 
@@ -27,6 +29,7 @@ O [índice de documentação](docs/README.md) organiza as referências por assun
 | Ambiente com dados fictícios | [Massa completa para testes](docs/operacao/massa-de-testes.md) |
 | Testes e rastreabilidade | [Testes](docs/testes/README.md) |
 | Diagramas do projeto | [Diagramas](docs/diagramas/README.md) |
+| Versões e publicação | [Changelog](CHANGELOG.md) e [release](docs/operacao/release.md) |
 
 ## Verificar alterações
 

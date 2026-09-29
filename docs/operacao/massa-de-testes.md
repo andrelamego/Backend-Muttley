@@ -22,7 +22,7 @@ Os emails usam `example.test`; nomes, instituições, endereços, empresas e ass
 
 ## Carregar pelo Compose
 
-Requer a API com Flyway e uma base vazia, admitindo somente o administrador criado pelo bootstrap. Na pasta `Infra-Muttley`:
+Requer a API com Flyway e uma base vazia, admitindo somente o administrador criado pelo bootstrap. Na pasta [Infra-Muttley](https://github.com/andrelamego/Infra-Muttley):
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.massa.yml up --build -d

@@ -2,14 +2,14 @@
 
 ## Serviços e endereços
 
-| Serviço | Configuração da API | Endereço interno no Compose |
-| --- | --- | --- |
-| PDF | `pdf.ms-url` | `http://pdf:8084` |
-| QR Code | `qrcode.ms-url` | `http://qrcode:8086` |
-| Kafka | `spring.kafka.bootstrap-servers` | `kafka:29092` |
-| E-mail | Consumidor dos tópicos de notificação | Serviço `email`; SMTP para `mailpit:1025` |
+| Serviço | Repositório | Configuração da API | Endereço interno no Compose |
+| --- | --- | --- | --- |
+| PDF | [Microservice-Pdf-Muttley](https://github.com/andrelamego/Microservice-Pdf-Muttley) | `pdf.ms-url` | `http://pdf:8084` |
+| QR Code | [Microservice-QrCode-Muttley](https://github.com/andrelamego/Microservice-QrCode-Muttley) | `qrcode.ms-url` | `http://qrcode:8086` |
+| Kafka | [Infra-Muttley](https://github.com/andrelamego/Infra-Muttley) | `spring.kafka.bootstrap-servers` | `kafka:29092` |
+| E-mail | [Microservice-Email-Muttley](https://github.com/andrelamego/Microservice-Email-Muttley) | Consumidor dos tópicos de notificação | Serviço `email`; SMTP para `mailpit:1025` |
 
-Os valores locais e as variáveis de ambiente estão na [configuração](../operacao/configuracao-backend.md). O [Compose](../../../Infra-Muttley/README.md) fornece os endereços entre containers e disponibiliza o Mailpit para consultar mensagens de teste.
+Os valores locais e as variáveis de ambiente estão na [configuração](../operacao/configuracao-backend.md). O [Compose](https://github.com/andrelamego/Infra-Muttley) fornece os endereços entre containers e disponibiliza o Mailpit para consultar mensagens de teste.
 
 ## E-mail e Kafka
 
