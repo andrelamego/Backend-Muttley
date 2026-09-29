@@ -25,7 +25,7 @@ mvn -Pintegration '-Dmuttley.test.database=mariadb' verify
 ./scripts/testar-requisitos.ps1 -Integration
 ```
 
-O script aceita `-MavenCommand`, `-MavenRepository` e `-Offline`. A integração não utiliza o banco do Compose nem a base de desenvolvimento. O profile `test` aponta por padrão para uma porta inválida; `@ServiceConnection` fornece a conexão do container descartável.
+O script aceita `-MavenCommand`, `-MavenRepository` e `-Offline`. A integração não utiliza o banco do Compose nem a base de desenvolvimento. O profile `test` aponta por padrão para uma porta inválida; `@ServiceConnection` fornece a conexão do container descartável. O Flyway cria o schema e o Hibernate valida os mapeamentos, como na aplicação.
 
 O perfil Maven seleciona `integration/*IT.java`. Testes históricos `*ApplicationIT` fora dessa pasta não fazem parte dessa seleção.
 
@@ -60,7 +60,7 @@ Os testes de concorrência coordenam solicitações em cenários de última vaga
 - Kafka, e-mail, PDF e QR são simulados nas fronteiras dos testes integrados do backend. O Compose permite verificar a comunicação real, mas sua inicialização não comprova o fluxo completo.
 - E2E deve percorrer solicitação/convite de cadastro, login, inscrição, presença, conclusão e download, pela interface e pelos serviços reais.
 - Testes visuais devem conferir celular e desktop, teclado, estados de erro/vazio/carregamento e movimento reduzido.
-- Migração de schema existente, outbox, redelivery de mensagens, indisponibilidade e recuperação após falha de disco/processo precisam de testes próprios.
+- Conversões de dados em futuras migrações, outbox, redelivery de mensagens, indisponibilidade e recuperação após falha de disco/processo precisam de testes próprios conforme sua implementação.
 - Consulte as [consultas de integridade](../operacao/sql/verificar-integridade-antes-da-atualizacao.sql) antes de preparar uma migração; elas não corrigem dados automaticamente.
 
 ## Manter os testes

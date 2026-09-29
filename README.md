@@ -23,7 +23,7 @@ O [índice de documentação](docs/README.md) organiza as referências por assun
 | Requisitos e regras de negócio | [Regras do sistema](docs/regras/requisitos-e-regras-de-negocio.md) |
 | Cadastro por convite e administrador inicial | [Cadastro](docs/regras/cadastro.md) |
 | Contratos HTTP e microsserviços | [API](docs/api/README.md) e [integrações](docs/api/integracoes.md) |
-| Configuração, dados e execução | [Operação](docs/operacao/README.md) |
+| Configuração, dados e execução | [Operação](docs/operacao/README.md) e [migrações](docs/operacao/migracoes.md) |
 | Testes e rastreabilidade | [Testes](docs/testes/README.md) |
 | Diagramas do projeto | [Diagramas](docs/diagramas/README.md) |
 

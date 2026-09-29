@@ -30,3 +30,7 @@ O Compose fornece conexão do banco, senha, Kafka, URLs dos microsserviços e de
 - A aplicação usa endpoints REST e não precisa do filtro de métodos ocultos de formulários HTML.
 
 Os testes de integração continuam usando `src/test/resources/application-test.properties`, que define banco, URLs e chave JWT próprios.
+
+## Estrutura do banco
+
+O Flyway aplica os SQLs versionados antes do JPA; `spring.jpa.hibernate.ddl-auto=validate` impede atualizações implícitas do Hibernate. Para começar com a base vazia e acrescentar novas versões, siga [migrações](migracoes.md). Não altere o arquivo local para restaurar `ddl-auto=update`.
