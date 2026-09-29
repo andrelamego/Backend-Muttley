@@ -4,10 +4,11 @@
 | --- | --- |
 | Subir o conjunto de serviços | [Docker Compose](../../../Infra-Muttley/README.md) |
 | Configurar a API fora do Docker | [Configuração do backend](configuracao-backend.md) |
+| Criar e evoluir o schema | [Migrações com Flyway](migracoes.md) |
 | Criar o administrador inicial | [Cadastro e bootstrap](../regras/cadastro.md) |
 | Reprogramar eventos de demonstração | [Atualização de massa](atualizacao-massa-eventos.md) |
-| Conferir duplicidades antes de atualizar o schema | [Consultas de integridade](sql/verificar-integridade-antes-da-atualizacao.sql) |
+| Diagnosticar duplicidades | [Consultas de integridade](sql/verificar-integridade-antes-da-atualizacao.sql) |
 
 O Compose usa volumes persistentes para banco, assinaturas e mensagens de teste. A alteração da senha em `.env` não altera contas já existentes no volume; o README da infraestrutura explica esse caso e o healthcheck de autenticação.
 
-Faça backup antes de alterar dados ou schema. A configuração atual usa `ddl-auto=update`; uma estratégia de migrações versionadas ainda deve ser definida para o lançamento. Os testes de integração criam bancos vazios e não comprovam a migração de uma base existente.
+O Flyway cria e evolui o schema; o Hibernate apenas valida os mapeamentos. O primeiro início desta base exige um schema vazio, conforme o guia de migrações. Para futuras alterações sobre dados que devam ser mantidos, faça backup e valide as conversões necessárias antes da atualização.

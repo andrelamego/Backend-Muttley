@@ -6,7 +6,7 @@ Comece pelo [README do backend](../README.md) para executar o projeto. Este índ
 | --- | --- |
 | `regras/` | [Requisitos e regras](regras/requisitos-e-regras-de-negocio.md) e [cadastro por convite](regras/cadastro.md) |
 | `api/` | [Contratos HTTP](api/README.md), [OpenAPI versionado](api/openapi.yaml) e [integrações](api/integracoes.md) |
-| `operacao/` | [Execução e dados](operacao/README.md), [configuração](operacao/configuracao-backend.md) e atualização da massa local |
+| `operacao/` | [Execução e dados](operacao/README.md), [configuração](operacao/configuracao-backend.md), [migrações](operacao/migracoes.md) e atualização da massa local |
 | `testes/` | [Execução e limites das suítes](testes/README.md) e [matriz RF/RN → testes](testes/matriz-requisitos-testes.csv) |
 | `diagramas/` | [Casos de uso, classes e entidades](diagramas/README.md) |
 
