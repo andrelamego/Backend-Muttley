@@ -1,0 +1,3 @@
+# Copie para application-local.properties na raiz de Backend-Muttley.
+# Se usar o MariaDB do Compose, informe o MUTTLEY_DB_PASSWORD de Infra-Muttley/.env.
+spring.datasource.password=defina-a-senha-local

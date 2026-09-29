@@ -34,3 +34,6 @@ build/
 
 ### Arquivos gerados em runtime ###
 uploads/
+
+### Configuração privada do ambiente local ###
+/application-local.properties
