@@ -1,43 +1,37 @@
 package com.fatec.muttley.medalha;
 
+import com.fatec.muttley.participacao.Participacao;
+import com.fatec.muttley.participacao.ParticipacaoService;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
-import com.fatec.muttley.aluno.Aluno;
-import com.fatec.muttley.aluno.AlunoService;
-
-import jakarta.persistence.EntityNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class MedalhaService {
-    @Autowired
-    private MedalhaRepository medalhaRepository;
+    private final MedalhaRepository medalhaRepository;
 
-    @Autowired
-    private AlunoService alunoService;
+    private final ParticipacaoService participacaoService;
 
-    @Autowired
-    private MedalhaMapper medalhaMapper;
+    private final MedalhaMapper medalhaMapper;
 
     public Medalha salvarOuAtualizar(AtualizacaoMedalha dto) {
-        // Valida se a aluno existe
-        Aluno aluno = alunoService.procurarPorId(dto.alunoId())
-                .orElseThrow(() -> new EntityNotFoundException("Aluno não encontrada com ID: " + dto.alunoId()));
+        Participacao participacao = participacaoService.procurarPorId(dto.participacaoId())
+                .orElseThrow(() -> new EntityNotFoundException("Participação não encontrada com ID: " + dto.participacaoId()));
         if (dto.id() != null) {
-            // atualizando Busca existente e atualiza
             Medalha existente = medalhaRepository.findById(dto.id())
-                    .orElseThrow(() -> new EntityNotFoundException("Caminhão não encontrado com ID: " + dto.id()));
+                    .orElseThrow(() -> new EntityNotFoundException("Medalha não encontrada com ID: " + dto.id()));
             medalhaMapper.updateEntityFromDto(dto, existente);
-            existente.setAluno(aluno); // Atualiza a aluno
+            existente.setParticipacao(participacao);
             return medalhaRepository.save(existente);
         } else {
-            // criando Novo caminhão
             Medalha novoMedalha = medalhaMapper.toEntityFromAtualizacao(dto);
-            novoMedalha.setAluno(aluno); // Define a aluno completa
+            novoMedalha.setParticipacao(participacao);
 
             return medalhaRepository.save(novoMedalha);
         }
@@ -45,6 +39,46 @@ public class MedalhaService {
 
     public List<Medalha> procurarTodos(){
         return medalhaRepository.findAll(Sort.by("nome").ascending());
+    }
+
+    public List<Medalha> procurarPorPessoa(Long pessoaId) {
+        return medalhaRepository.findByPessoaIdComDados(pessoaId);
+    }
+
+    @Transactional
+    public Medalha gerarMedalhaBronzePorPresenca(Participacao participacao) {
+        if (participacao == null || participacao.getId() == null || !participacao.isPresente()) {
+            throw new IllegalArgumentException("A participacao precisa estar confirmada para receber a medalha.");
+        }
+
+        participacao = participacaoService.procurarPorIdParaAtualizacao(participacao.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Participação não encontrada."));
+        if (!participacao.isPresente()) {
+            throw new IllegalArgumentException("A participação precisa estar confirmada para receber a medalha.");
+        }
+
+        if (medalhaRepository.existsByParticipacaoIdAndTipo(participacao.getId(), TipoMedalha.BRONZE)) {
+            return null;
+        }
+
+        Medalha medalha = new Medalha();
+        medalha.setNome("Participacao confirmada");
+        medalha.setDescricao("Medalha concedida pela presenca confirmada no evento.");
+        medalha.setTipo(TipoMedalha.BRONZE);
+        medalha.setParticipacao(participacao);
+        medalha.setParticipacaoPresencaId(participacao.getId());
+        return medalhaRepository.save(medalha);
+    }
+
+    @Transactional
+    public void gerarMedalhasBronzePorPresenca(List<Participacao> participacoes) {
+        participacoes.stream()
+                .filter(Participacao::isPresente)
+                .forEach(this::gerarMedalhaBronzePorPresenca);
+    }
+
+    public List<MedalhaRepository.MedalhasPorParticipante> procurarTotaisPorParticipante(int limite) {
+        return medalhaRepository.findTotaisPorParticipante(PageRequest.of(0, limite));
     }
 
     public void apagarPorId (Long id) {

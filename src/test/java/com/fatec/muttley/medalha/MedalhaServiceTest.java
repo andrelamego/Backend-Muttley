@@ -1,152 +1,72 @@
 package com.fatec.muttley.medalha;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Optional;
-
-import com.fatec.muttley.aluno.Aluno;
-import com.fatec.muttley.aluno.AlunoService;
+import com.fatec.muttley.participacao.*;
 import jakarta.persistence.EntityNotFoundException;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.*;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Sort;
+import org.mapstruct.factory.Mappers;
+import java.util.*;
+import static com.fatec.muttley.support.Cenarios.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MedalhaServiceTest {
-
-    @Mock
-    private MedalhaRepository medalhaRepository;
-
-    @Mock
-    private MedalhaMapper medalhaMapper;
-
-    @Mock
-    private AlunoService alunoService;
-
-    @InjectMocks
-    private MedalhaService medalhaService;
-
-    @Test
-    void deveCriarMedalhaQuandoIdForNulo() {
-        AtualizacaoMedalha dto = new AtualizacaoMedalha(
-                null,
-                "Eng. de Software",
-                "Recebida ao participar do evento de Eng. de Software",
-                1L
-        );
-        Medalha novo = new Medalha();
-        novo.setNome("Eng. de Software");
-        Medalha salvo = new Medalha();
-        salvo.setId(1L);
-        salvo.setNome("Eng. de Software");
-
-        Aluno aluno = new Aluno();
-        aluno.setId(1L);
-
-        when(alunoService.procurarPorId(1L)).thenReturn(Optional.of(aluno));
-        when(medalhaMapper.toEntityFromAtualizacao(dto)).thenReturn(novo);
-        when(medalhaRepository.save(novo)).thenReturn(salvo);
-
-        Medalha resultado = medalhaService.salvarOuAtualizar(dto);
-
-        assertThat(resultado.getId()).isEqualTo(1L);
-        assertThat(resultado.getNome()).isEqualTo("Eng. de Software");
-        verify(medalhaMapper).toEntityFromAtualizacao(dto);
-        verify(medalhaMapper, never()).updateEntityFromDto(any(), any());
-        verify(medalhaRepository).save(novo);
+    @Mock MedalhaRepository repository;
+    @Mock ParticipacaoService participacoes;
+    @Spy MedalhaMapper mapper=Mappers.getMapper(MedalhaMapper.class);
+    @InjectMocks MedalhaService service;
+    @Test void RF_MED_03_RN_MED_03_04_geraBronzeParaPresente() {
+        Participacao p=participacao(1,true); when(repository.save(any())).thenAnswer(i->i.getArgument(0));
+        when(participacoes.procurarPorIdParaAtualizacao(1L)).thenReturn(Optional.of(p));
+        Medalha medalha=service.gerarMedalhaBronzePorPresenca(p);
+        assertThat(medalha.getTipo()).isEqualTo(TipoMedalha.BRONZE);
+        assertThat(medalha.getNome()).isNotBlank(); assertThat(medalha.getDescricao()).isNotBlank();
+        assertThat(medalha.getParticipacao()).isSameAs(p); verify(repository).save(medalha);
     }
-
-    @Test
-    void deveAtualizarMedalhaQuandoIdForInformado() {
-        AtualizacaoMedalha dto = new AtualizacaoMedalha(
-                10L,
-                "Eng. de Software",
-                "Recebida ao participar do evento de Eng. de Software",
-                1L
-        );
-        Medalha existente = new Medalha();
-        existente.setId(10L);
-        existente.setNome("Eng. de Software");
-
-        Aluno aluno = new Aluno();
-        aluno.setId(1L);
-
-        when(alunoService.procurarPorId(1L)).thenReturn(Optional.of(aluno));
-        when(medalhaRepository.findById(10L)).thenReturn(Optional.of(existente));
-        when(medalhaRepository.save(existente)).thenReturn(existente);
-
-        Medalha resultado = medalhaService.salvarOuAtualizar(dto);
-
-        assertThat(resultado.getId()).isEqualTo(10L);
-        verify(medalhaRepository).findById(10L);
-        verify(medalhaMapper).updateEntityFromDto(dto, existente);
-        verify(medalhaRepository).save(existente);
-        verify(medalhaMapper, never()).toEntityFromAtualizacao(any());
+    @ParameterizedTest @ValueSource(strings={"nula","semId","ausente"})
+    void RN_MED_04_rejeitaParticipacaoNaoConfirmada(String caso) {
+        Participacao p=caso.equals("nula")?null:participacao(1,!caso.equals("ausente"));
+        if(caso.equals("semId"))p.setId(null);
+        assertThatThrownBy(() -> service.gerarMedalhaBronzePorPresenca(p)).isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(repository);
     }
-
-    @Test
-    void deveLancarExcecaoAoAtualizarMedalhaInexistente() {
-        AtualizacaoMedalha dto = new AtualizacaoMedalha(
-                99L,
-                "Eng. de Software",
-                "Recebida ao participar do evento de Eng. de Software",
-                1L
-        );
-
-        Aluno aluno = new Aluno();
-        aluno.setId(1L);
-
-        when(alunoService.procurarPorId(1L)).thenReturn(Optional.of(aluno));
-        when(medalhaRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> medalhaService.salvarOuAtualizar(dto))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("99");
-
-        verify(medalhaRepository).findById(99L);
-        verify(medalhaRepository, never()).save(any());
+    @Test void RN_MED_05_naoDuplicaBronzeAutomatico() {
+        when(participacoes.procurarPorIdParaAtualizacao(1L)).thenReturn(Optional.of(participacao(1,true)));
+        when(repository.existsByParticipacaoIdAndTipo(1L,TipoMedalha.BRONZE)).thenReturn(true);
+        assertThat(service.gerarMedalhaBronzePorPresenca(participacao(1,true))).isNull();
+        verify(repository,never()).save(any());
     }
-
-    @Test
-    void deveRetornarListaOrdenadaPorNomeAoProcurarTodos() {
-        List<Medalha> medalhas = List.of(new Medalha(), new Medalha());
-        Sort sortEsperado = Sort.by("nome").ascending();
-
-        when(medalhaRepository.findAll(sortEsperado)).thenReturn(medalhas);
-
-        List<Medalha> resultado = medalhaService.procurarTodos();
-
-        assertThat(resultado).hasSize(2);
-        verify(medalhaRepository).findAll(sortEsperado);
+    @Test void loteIgnoraAusentes() {
+        when(participacoes.procurarPorIdParaAtualizacao(1L)).thenReturn(Optional.of(participacao(1,true)));
+        service.gerarMedalhasBronzePorPresenca(List.of(participacao(1,true),participacao(2,false)));
+        verify(repository).save(argThat(m -> m.getParticipacao().getId().equals(1L)));
+        verify(repository,never()).existsByParticipacaoIdAndTipo(2L,TipoMedalha.BRONZE);
     }
-
-    @Test
-    void deveProcurarMedalhaPorId() {
-        Medalha medalha = new Medalha();
-        medalha.setId(5L);
-
-        when(medalhaRepository.findById(5L)).thenReturn(Optional.of(medalha));
-
-        Optional<Medalha> resultado = medalhaService.procurarPorId(5L);
-
-        assertThat(resultado).isPresent();
-        assertThat(resultado.get().getId()).isEqualTo(5L);
-        verify(medalhaRepository).findById(5L);
+    @ParameterizedTest @EnumSource(TipoMedalha.class)
+    void RN_MED_02_06_administradorPodeConcederTiposAdicionais(TipoMedalha tipo) {
+        when(participacoes.procurarPorId(1L)).thenReturn(Optional.of(participacao(1,false)));
+        when(repository.save(any())).thenAnswer(i->i.getArgument(0));
+        Medalha m=service.salvarOuAtualizar(new AtualizacaoMedalha(null,"Destaque","Reconhecimento",tipo,1L));
+        assertThat(m.getTipo()).isEqualTo(tipo); assertThat(m.getParticipacao().getId()).isEqualTo(1L);
+        verify(repository,never()).existsByParticipacaoIdAndTipo(anyLong(),any());
     }
-
-    @Test
-    void deveApagarMedalhaPorId() {
-        medalhaService.apagarPorId(7L);
-
-        verify(medalhaRepository).deleteById(7L);
+    @Test void RN_MED_01_exigeParticipacaoExistente() {
+        assertThatThrownBy(() -> service.salvarOuAtualizar(new AtualizacaoMedalha(null,"Nome","Descricao",TipoMedalha.OURO,1L)))
+                .isInstanceOf(EntityNotFoundException.class); verifyNoInteractions(repository);
+    }
+    @Test void RN_MED_03_tipoPadraoNoCicloDePersistenciaPreservaEscolhaExplicita() {
+        Medalha medalha=new Medalha();medalha.preencherTipoPadrao();assertThat(medalha.getTipo()).isEqualTo(TipoMedalha.BRONZE);
+        medalha.setTipo(TipoMedalha.OURO);medalha.preencherTipoPadrao();assertThat(medalha.getTipo()).isEqualTo(TipoMedalha.OURO);
+    }
+    @Test void RF_MED_01_editaMedalhaPreservandoIdComParticipacaoResolvida() {
+        var p=participacao(1,true);var medalha=new Medalha();medalha.setId(7L);
+        when(participacoes.procurarPorId(1L)).thenReturn(Optional.of(p));when(repository.findById(7L)).thenReturn(Optional.of(medalha));when(repository.save(medalha)).thenReturn(medalha);
+        var atualizada=service.salvarOuAtualizar(new AtualizacaoMedalha(7L,"Destaque","Descricao",TipoMedalha.PRATA,1L));
+        assertThat(atualizada.getId()).isEqualTo(7L);assertThat(atualizada.getTipo()).isEqualTo(TipoMedalha.PRATA);assertThat(atualizada.getParticipacao()).isSameAs(p);
     }
 }

@@ -1,0 +1,1746 @@
+openapi: 3.0.3
+info:
+  title: Muttley API
+  description: >-
+    API REST do Sistema Muttley para Gestão de Eventos Acadêmicos, Inscrições,
+    Emissão e Validação de Certificados com Assinatura Visual e Gamificação por Medalhas.
+    Desenvolvido para a FATEC Zona Leste.
+  version: 0.1.0-alpha
+  contact:
+    name: Equipe Muttley - FATEC Zona Leste
+    url: https://github.com/andrelamego/Backend-Muttley
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://localhost:8083
+    description: Servidor Local de Desenvolvimento
+
+tags:
+  - name: Sistema
+    description: Verificação de disponibilidade e status da aplicação
+  - name: Autenticação
+    description: Cadastro de usuários, complementação de dados e login JWT
+  - name: Meu Perfil
+    description: Consultas e histórico pessoal do usuário autenticado
+  - name: Eventos
+    description: Consulta pública e gestão administrativa de eventos e inscrições
+  - name: Participações
+    description: Inscrições e acompanhamento de presença em eventos
+  - name: Certificados Públicos
+    description: Validação pública, visualização e download de certificados
+  - name: Pessoas e Perfis
+    description: Gestão de pessoas, alunos, professores, palestrantes, organizadores e colaboradores
+  - name: Administração - Dashboard
+    description: Métricas consolidadas, gráficos e estatísticas gerais
+  - name: Administração - Certificados
+    description: Gestão administrativa e upload de assinaturas visuais
+  - name: Administração - Disciplinas
+    description: Gestão de disciplinas vinculadas a eventos
+  - name: Administração - Endereços
+    description: Gestão de endereços
+  - name: Administração - Locais
+    description: Gestão dos locais e salas de eventos
+  - name: Administração - Medalhas
+    description: Gestão de medalhas do sistema de gamificação
+  - name: Administração - Patrocinadores
+    description: Gestão de empresas e parceiros patrocinadores
+
+paths:
+  /api/inicio:
+    get:
+      tags:
+        - Sistema
+      summary: Verificar status da API
+      description: Retorna o status de integridade da API Muttley.
+      responses:
+        '200':
+          description: API em operação normal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+                  message:
+                    type: string
+                    example: A API Muttley está online e a funcionar!
+
+  /api/auth/register:
+    post:
+      tags:
+        - Autenticação
+      summary: Solicitar cadastro
+      description: Cria uma conta USER pendente e envia um convite de uso único para definir a senha.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitacaoCadastro'
+      responses:
+        '202':
+          description: Solicitação recebida
+        '400':
+          description: Dados inválidos
+    put:
+      tags:
+        - Autenticação
+      summary: Completar cadastro
+      description: Define a senha mediante convite válido de uso único recebido por email.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoPessoa'
+      responses:
+        '200':
+          description: Cadastro completado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+        '404':
+          description: Convite inválido ou expirado
+
+  /api/auth/login:
+    post:
+      tags:
+        - Autenticação
+      summary: Autenticar usuário (Login)
+      description: Valida credenciais (email e senha) e retorna o token JWT de acesso.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Autenticado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Email ou senha inválidos
+
+  /api/me:
+    get:
+      tags:
+        - Meu Perfil
+      summary: Obter perfil autenticado
+      description: Retorna os dados da pessoa vinculada ao token JWT atual.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dados retornados com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PessoaMeResponse'
+        '401':
+          description: Não autenticado
+        '404':
+          description: Usuário não encontrado
+
+  /api/me/certificados:
+    get:
+      tags:
+        - Meu Perfil
+      summary: Listar certificados do usuário
+      description: Retorna todos os certificados emitidos para o usuário autenticado.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de certificados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CertificadoUsuarioResponse'
+        '401':
+          description: Não autenticado
+
+  /api/me/medalhas:
+    get:
+      tags:
+        - Meu Perfil
+      summary: Listar medalhas do usuário
+      description: Retorna as medalhas conquistadas pelo usuário autenticado.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de medalhas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MedalhaUsuarioResponse'
+        '401':
+          description: Não autenticado
+
+  /api/me/participacoes:
+    get:
+      tags:
+        - Meu Perfil
+      summary: Listar participações do usuário
+      description: Retorna histórico de participações do usuário autenticado.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de participações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParticipacaoUsuarioResponse'
+        '401':
+          description: Não autenticado
+
+  /api/eventos:
+    get:
+      tags:
+        - Eventos
+      summary: Listar eventos públicos
+      description: Retorna os eventos disponíveis para inscrição pública.
+      responses:
+        '200':
+          description: Lista de eventos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventoPublicoResponse'
+
+  /api/eventos/{id}:
+    get:
+      tags:
+        - Eventos
+      summary: Buscar evento público por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Evento encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventoPublicoResponse'
+        '404':
+          description: Evento não encontrado
+
+  /api/eventos/{id}/inscricoes:
+    post:
+      tags:
+        - Eventos
+      summary: Inscrição pública em evento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InscricaoPublicaRequest'
+      responses:
+        '201':
+          description: Inscrição realizada com sucesso
+        '400':
+          description: Dados inválidos
+        '404':
+          description: Evento não encontrado
+
+  /api/eventos/{eventoId}/confirmar-presenca/{cpf}:
+    post:
+      tags:
+        - Eventos
+      summary: Confirmar presença pública por CPF
+      parameters:
+        - name: eventoId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: cpf
+          in: path
+          required: true
+          schema:
+            type: string
+            example: '52998224725'
+      responses:
+        '200':
+          description: Presença confirmada
+        '400':
+          description: CPF inválido ou erro de regra
+        '404':
+          description: Participação ou evento não encontrado
+
+  /api/certificados/{codigo}:
+    get:
+      tags:
+        - Certificados Públicos
+      summary: Consultar dados públicos do certificado
+      parameters:
+        - name: codigo
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'ABC123XYZ'
+      responses:
+        '200':
+          description: Certificado encontrado
+        '404':
+          description: Certificado não encontrado
+
+  /api/certificados/{codigo}/preview:
+    get:
+      tags:
+        - Certificados Públicos
+      summary: Pré-visualizar PDF do certificado
+      parameters:
+        - name: codigo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PDF gerado
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Não encontrado
+
+  /api/certificados/{codigo}/download:
+    get:
+      tags:
+        - Certificados Públicos
+      summary: Baixar PDF do certificado
+      parameters:
+        - name: codigo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Download iniciado
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Não encontrado
+
+  /{id}/assinatura-visual:
+    get:
+      tags:
+        - Certificados Públicos
+      summary: Exibir imagem pública da assinatura
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Imagem da assinatura
+        '404':
+          description: Não encontrada
+
+  /api/pessoa/dados-cadastro/{token}:
+    get:
+      tags:
+        - Pessoas e Perfis
+      summary: Consultar dados para conclusão de cadastro com convite
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dados retornados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterInfo'
+        '404':
+          description: Não encontrada
+
+  /api/participacoes:
+    get:
+      tags:
+        - Participações
+      summary: Listar participações permitidas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de participações
+        '401':
+          description: Não autenticado
+    post:
+      tags:
+        - Participações
+      summary: Criar nova participação
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoParticipacao'
+      responses:
+        '201':
+          description: Participação criada
+        '400':
+          description: Dados inválidos
+        '401':
+          description: Não autenticado
+
+  /api/participacoes/{id}:
+    get:
+      tags:
+        - Participações
+      summary: Buscar participação por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Participação encontrada
+        '401':
+          description: Não autenticado
+        '404':
+          description: Não encontrada
+    put:
+      tags:
+        - Participações
+      summary: Atualizar participação
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoParticipacao'
+      responses:
+        '200':
+          description: Atualizada com sucesso
+        '404':
+          description: Não encontrada
+    delete:
+      tags:
+        - Participações
+      summary: Deletar participação
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Deletada com sucesso
+        '404':
+          description: Não encontrada
+
+  /api/admin/inicio:
+    get:
+      tags:
+        - Administração - Dashboard
+      summary: Carregar estatísticas do painel administrativo
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Métricas recuperadas
+        '401':
+          description: Não autenticado
+        '403':
+          description: Acesso negado (requer papel ADMIN)
+
+  /api/admin/eventos:
+    get:
+      tags:
+        - Eventos
+      summary: Listar eventos paginados (Administração)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: busca
+          in: query
+          schema:
+            type: string
+        - name: ordenar
+          in: query
+          schema:
+            type: string
+            default: data
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [CRIADO, EM_ANDAMENTO, CONCLUIDO, CANCELADO]
+        - name: pagina
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: tamanho
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Página de eventos
+        '401':
+          description: Não autenticado
+        '403':
+          description: Acesso negado
+    post:
+      tags:
+        - Eventos
+      summary: Criar novo evento com participações
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventoComParticipacaoDTO'
+      responses:
+        '201':
+          description: Evento criado com sucesso
+        '400':
+          description: Dados inválidos
+
+  /api/admin/eventos/{id}:
+    get:
+      tags:
+        - Eventos
+      summary: Buscar evento para edição
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Evento encontrado
+        '404':
+          description: Não encontrado
+    put:
+      tags:
+        - Eventos
+      summary: Atualizar evento existente
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventoComParticipacaoDTO'
+      responses:
+        '200':
+          description: Evento atualizado
+        '404':
+          description: Não encontrado
+    delete:
+      tags:
+        - Eventos
+      summary: Cancelar evento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Evento cancelado
+        '404':
+          description: Não encontrado
+
+  /api/admin/eventos/{id}/qrcode-inscricao:
+    get:
+      tags:
+        - Eventos
+      summary: Baixar QR Code de Inscrição
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Imagem PNG
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Não encontrado
+
+  /api/admin/eventos/{id}/qrcode-confirmacao:
+    get:
+      tags:
+        - Eventos
+      summary: Baixar QR Code de Confirmação
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Imagem PNG
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Não encontrado
+
+  /api/admin/eventos/{id}/participacoes:
+    get:
+      tags:
+        - Eventos
+      summary: Consultar participações para fechamento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Participações do evento
+
+  /api/admin/eventos/{id}/concluir:
+    post:
+      tags:
+        - Eventos
+      summary: Concluir evento e emitir certificados
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                presentes:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                  description: IDs das participações presentes
+                file:
+                  type: string
+                  format: binary
+                  description: Imagem da assinatura visual
+      responses:
+        '200':
+          description: Concluído e certificados gerados
+
+  /api/admin/certificados:
+    get:
+      tags:
+        - Administração - Certificados
+      summary: Listar dados de certificados
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dados retornados
+
+  /api/admin/certificados/evento/{eventoId}/upload-assinatura:
+    post:
+      tags:
+        - Administração - Certificados
+      summary: Upload de assinatura por evento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: eventoId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Assinatura vinculada
+
+  /api/admin/certificados/{id}/upload-assinatura:
+    post:
+      tags:
+        - Administração - Certificados
+      summary: Upload de assinatura para certificado individual
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Assinatura vinculada
+
+  /api/admin/certificados/{id}/assinatura-visual:
+    get:
+      tags:
+        - Administração - Certificados
+      summary: Exibir imagem da assinatura visual do certificado
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Imagem retornada
+
+  /api/admin/pessoas:
+    get:
+      tags:
+        - Pessoas e Perfis
+      summary: Listar todas as pessoas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de pessoas
+    post:
+      tags:
+        - Pessoas e Perfis
+      summary: Cadastrar pessoa
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoPessoa'
+      responses:
+        '201':
+          description: Criada com sucesso
+
+  /api/admin/pessoas/{id}:
+    get:
+      tags:
+        - Pessoas e Perfis
+      summary: Buscar pessoa por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Pessoa encontrada
+    put:
+      tags:
+        - Pessoas e Perfis
+      summary: Atualizar pessoa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoPessoa'
+      responses:
+        '200':
+          description: Atualizada com sucesso
+    delete:
+      tags:
+        - Pessoas e Perfis
+      summary: Excluir pessoa
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Excluída com sucesso
+
+  /api/admin/alunos:
+    get:
+      tags:
+        - Pessoas e Perfis
+      summary: Listar alunos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de alunos
+
+  /api/admin/professores:
+    get:
+      tags:
+        - Pessoas e Perfis
+      summary: Listar professores
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de professores
+
+  /api/admin/palestrantes:
+    get:
+      tags:
+        - Pessoas e Perfis
+      summary: Listar palestrantes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de palestrantes
+
+  /api/admin/organizadores:
+    get:
+      tags:
+        - Pessoas e Perfis
+      summary: Listar organizadores
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de organizadores
+
+  /api/admin/colaboradores:
+    get:
+      tags:
+        - Pessoas e Perfis
+      summary: Listar colaboradores
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de colaboradores
+
+  /api/admin/disciplinas:
+    get:
+      tags:
+        - Administração - Disciplinas
+      summary: Listar disciplinas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de disciplinas
+    post:
+      tags:
+        - Administração - Disciplinas
+      summary: Criar disciplina
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoDisciplina'
+      responses:
+        '201':
+          description: Criada com sucesso
+
+  /api/admin/disciplinas/{id}:
+    get:
+      tags:
+        - Administração - Disciplinas
+      summary: Buscar disciplina por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Encontrada
+    put:
+      tags:
+        - Administração - Disciplinas
+      summary: Atualizar disciplina
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoDisciplina'
+      responses:
+        '200':
+          description: Atualizada
+    delete:
+      tags:
+        - Administração - Disciplinas
+      summary: Excluir disciplina
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Excluída
+
+  /api/admin/enderecos:
+    get:
+      tags:
+        - Administração - Endereços
+      summary: Listar endereços
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de endereços
+    post:
+      tags:
+        - Administração - Endereços
+      summary: Criar endereço
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoEndereco'
+      responses:
+        '201':
+          description: Criado com sucesso
+
+  /api/admin/enderecos/{id}:
+    get:
+      tags:
+        - Administração - Endereços
+      summary: Buscar endereço por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Encontrado
+    put:
+      tags:
+        - Administração - Endereços
+      summary: Atualizar endereço
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoEndereco'
+      responses:
+        '200':
+          description: Atualizado
+    delete:
+      tags:
+        - Administração - Endereços
+      summary: Excluir endereço
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Excluído
+
+  /api/admin/locais:
+    get:
+      tags:
+        - Administração - Locais
+      summary: Listar locais
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de locais
+    post:
+      tags:
+        - Administração - Locais
+      summary: Criar local
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoLocal'
+      responses:
+        '201':
+          description: Criado com sucesso
+
+  /api/admin/locais/{id}:
+    get:
+      tags:
+        - Administração - Locais
+      summary: Buscar local por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Encontrado
+    put:
+      tags:
+        - Administração - Locais
+      summary: Atualizar local
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoLocal'
+      responses:
+        '200':
+          description: Atualizado
+    delete:
+      tags:
+        - Administração - Locais
+      summary: Excluir local
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Excluído
+
+  /api/admin/medalhas:
+    get:
+      tags:
+        - Administração - Medalhas
+      summary: Listar medalhas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de medalhas
+    post:
+      tags:
+        - Administração - Medalhas
+      summary: Criar medalha
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoMedalha'
+      responses:
+        '201':
+          description: Criada com sucesso
+
+  /api/admin/medalhas/{id}:
+    get:
+      tags:
+        - Administração - Medalhas
+      summary: Buscar medalha por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Encontrada
+    put:
+      tags:
+        - Administração - Medalhas
+      summary: Atualizar medalha
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoMedalha'
+      responses:
+        '200':
+          description: Atualizada
+    delete:
+      tags:
+        - Administração - Medalhas
+      summary: Excluir medalha
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Excluída
+
+  /api/admin/patrocinadores:
+    get:
+      tags:
+        - Administração - Patrocinadores
+      summary: Listar patrocinadores
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de patrocinadores
+    post:
+      tags:
+        - Administração - Patrocinadores
+      summary: Criar patrocinador
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoPatrocinador'
+      responses:
+        '201':
+          description: Criado com sucesso
+
+  /api/admin/patrocinadores/{id}:
+    get:
+      tags:
+        - Administração - Patrocinadores
+      summary: Buscar patrocinador por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Encontrado
+    put:
+      tags:
+        - Administração - Patrocinadores
+      summary: Atualizar patrocinador
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoPatrocinador'
+      responses:
+        '200':
+          description: Atualizado
+    delete:
+      tags:
+        - Administração - Patrocinadores
+      summary: Excluir patrocinador
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Excluído
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Insira o token JWT retornado no endpoint /api/auth/login.
+
+  schemas:
+    SolicitacaoCadastro:
+      type: object
+      required: [nome, email]
+      properties:
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - senha
+      properties:
+        email:
+          type: string
+          format: email
+          example: usuario@fatec.sp.gov.br
+        senha:
+          type: string
+          example: Senha@1234
+
+    UsuarioResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        nome:
+          type: string
+          example: João da Silva
+        email:
+          type: string
+          example: joao@fatec.sp.gov.br
+        role:
+          type: string
+          enum: [USER, ADMIN]
+          example: USER
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          format: int64
+          example: 7200
+        usuario:
+          $ref: '#/components/schemas/UsuarioResponse'
+
+    AtualizacaoPessoa:
+      type: object
+      required: [nome, email, telefone, cpf, senha]
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+          example: Maria Souza
+        email:
+          type: string
+          format: email
+          example: maria@fatec.sp.gov.br
+        cpf:
+          type: string
+          example: '529.982.247-25'
+        telefone:
+          type: string
+          example: '11999999999'
+        senha:
+          type: string
+          example: SenhaForte@123
+
+    PessoaMeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        aluno:
+          type: boolean
+        professor:
+          type: boolean
+        palestrante:
+          type: boolean
+        organizador:
+          type: boolean
+        colaborador:
+          type: boolean
+
+    CertificadoUsuarioResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        codigoValidacao:
+          type: string
+        dataEmissao:
+          type: string
+          format: date
+        eventoTema:
+          type: string
+        eventoData:
+          type: string
+          format: date
+
+    MedalhaUsuarioResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+        tipo:
+          type: string
+        eventoTema:
+          type: string
+
+    ParticipacaoUsuarioResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        inscricao:
+          type: string
+        tipo:
+          type: string
+        presente:
+          type: boolean
+        eventoId:
+          type: integer
+          format: int64
+        eventoTema:
+          type: string
+        eventoData:
+          type: string
+          format: date
+
+    EventoPublicoResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tema:
+          type: string
+        descricao:
+          type: string
+        data:
+          type: string
+          format: date
+        horarioInicio:
+          type: string
+        horarioFim:
+          type: string
+        inscricoesEncerradas:
+          type: boolean
+
+    InscricaoPublicaRequest:
+      type: object
+      required:
+        - nome
+        - email
+        - cpf
+      properties:
+        nome:
+          type: string
+          example: Carlos Silva
+        email:
+          type: string
+          format: email
+          example: carlos@fatec.sp.gov.br
+        cpf:
+          type: string
+          example: '52998224725'
+
+    EventoComParticipacaoDTO:
+      type: object
+      required:
+        - evento
+      properties:
+        evento:
+          $ref: '#/components/schemas/AtualizacaoEvento'
+        participacoes:
+          type: array
+          items:
+            type: object
+
+    AtualizacaoEvento:
+      type: object
+      required:
+        - tema
+        - data
+        - horarioInicio
+        - horarioFim
+      properties:
+        id:
+          type: integer
+          format: int64
+        tema:
+          type: string
+          example: Semana de Tecnologia FATEC
+        descricao:
+          type: string
+        data:
+          type: string
+          format: date
+          example: '2026-10-15'
+        horarioInicio:
+          type: string
+          example: '09:00'
+        horarioFim:
+          type: string
+          example: '12:00'
+        localId:
+          type: integer
+          format: int64
+        disciplinaId:
+          type: integer
+          format: int64
+
+    AtualizacaoParticipacao:
+      type: object
+      required:
+        - pessoaId
+        - eventoId
+      properties:
+        id:
+          type: integer
+          format: int64
+        inscricao:
+          type: string
+        tipo:
+          type: string
+          example: ALUNO
+        pessoaId:
+          type: integer
+          format: int64
+        eventoId:
+          type: integer
+          format: int64
+
+    AtualizacaoDisciplina:
+      type: object
+      required:
+        - nome
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+          example: Banco de Dados Relacional
+        sigla:
+          type: string
+          example: BDR
+
+    AtualizacaoEndereco:
+      type: object
+      required:
+        - logradouro
+      properties:
+        id:
+          type: integer
+          format: int64
+        logradouro:
+          type: string
+          example: Av. Águia de Haia
+        numero:
+          type: string
+          example: '2633'
+        bairro:
+          type: string
+          example: Cidade A.E. Carvalho
+        cidade:
+          type: string
+          example: São Paulo
+        estado:
+          type: string
+          example: SP
+        cep:
+          type: string
+          example: '03694000'
+
+    AtualizacaoLocal:
+      type: object
+      required:
+        - nome
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+          example: Auditório Principal
+        capacidade:
+          type: integer
+          example: 200
+        enderecoId:
+          type: integer
+          format: int64
+
+    AtualizacaoMedalha:
+      type: object
+      required:
+        - nome
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+          example: Participação Ouro
+        descricao:
+          type: string
+        caminhoImagem:
+          type: string
+
+    AtualizacaoPatrocinador:
+      type: object
+      required:
+        - nome
+      properties:
+        id:
+          type: integer
+          format: int64
+        nome:
+          type: string
+          example: Google Cloud
+        caminhoLogo:
+          type: string
+
+    RegisterInfo:
+      type: object
+      properties:
+        nome:
+          type: string
+        email:
+          type: string
+        cpf:
+          type: string

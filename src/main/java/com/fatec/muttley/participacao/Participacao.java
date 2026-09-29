@@ -1,0 +1,55 @@
+package com.fatec.muttley.participacao;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fatec.muttley.evento.Evento;
+import com.fatec.muttley.pessoa.Pessoa;
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "participacao", uniqueConstraints = @UniqueConstraint(
+        name = "uk_participacao_evento_pessoa", columnNames = {"id_evento", "id_pessoa"}))
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
+public class Participacao {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_participacao")
+    private Long id;
+    private int inscricao;
+    private String tipo;
+    private boolean presente;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_evento", nullable = false)
+    @JsonBackReference
+    private Evento evento;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_pessoa", nullable = false)
+    @JsonManagedReference
+    private Pessoa pessoa;
+
+    public Participacao(AtualizacaoParticipacao dados, Pessoa pessoa, Evento evento){
+        this.inscricao = dados.inscricao();
+        this.tipo = dados.tipo();
+        this.pessoa = pessoa;
+        this.evento = evento;
+    }
+
+    public void atualizarInformacoes(AtualizacaoParticipacao dados, Pessoa pessoa, Evento evento) {
+        if (dados.inscricao() != 0)
+            this.inscricao = dados.inscricao();
+        if (dados.tipo() != null)
+            this.tipo = dados.tipo();
+        if (pessoa != null)
+            this.pessoa = pessoa;
+        if (evento != null)
+            this.evento = evento;
+    }
+}
+

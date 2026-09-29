@@ -1,91 +1,109 @@
 package com.fatec.muttley.certificado;
 
-import com.fatec.muttley.aluno.AtualizacaoAluno;
+import com.fatec.muttley.evento.EventoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.multipart.MultipartFile;
 
-@Controller
-@RequestMapping("/certificado")
+@Tag(name = "Administração - Certificados", description = "Gestão administrativa de certificados emitidos e upload de assinaturas")
+@SecurityRequirement(name = "bearerAuth")
+@RestController
+@RequestMapping("/api/admin/certificados")
+@RequiredArgsConstructor
 public class CertificadoController {
-    @Autowired
-    private CertificadoService certificadoService;
-    @Autowired
-    private CertificadoMapper certificadoMapper;
 
-    @GetMapping("/listagem")
-    public String carregaPaginaFormulario (Model model){
-        model.addAttribute("listaCertificados", certificadoService.procurarTodos());
-        return "certificado/listagem";
+    private final CertificadoService certificadoService;
+
+    private final EventoService eventoService;
+
+    private final AssinaturaStorage assinaturaStorage;
+
+    @Operation(summary = "Listar dados gerais de certificados",
+            description = "Retorna todos os certificados, eventos aguardando emissão e os últimos certificados emitidos.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dados recuperados com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (requer papel ADMIN)")
+    })
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> listarDados() {
+        return ResponseEntity.ok(Map.of(
+                "certificados", certificadoService.procurarTodos(),
+                "eventosAguardandoCertificado", eventoService.procurarEventosAguardandoEmissaoCertificado(),
+                "ultimosCertificados", certificadoService.procurarUltimosEmitidos()
+        ));
     }
 
-    @GetMapping("/formulario")
-    public String mostraFormulario (@RequestParam(required = false) Long id, Model model){
-        AtualizacaoCertificado dto;
-        if (id != null){
-            Certificado certificado = certificadoService.procurarPorId(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Certificado não encontrado"));
-            dto = certificadoMapper.toAtualizacaoDto(certificado);
-        } else {
-            dto = new AtualizacaoCertificado(null, null, "");
-        }
-        model.addAttribute("certificado", dto);
-        return "certificado/formulario";
-    }
-
-    @GetMapping("/formulario/{îd}")
-    public String carregaPaginaFormulario (@PathVariable("id") Long id, Model model, RedirectAttributes redirectAttributes){
-        AtualizacaoCertificado dto;
-        try {
-            if(id != null){
-                Certificado certificado = certificadoService.procurarPorId(id).orElseThrow(() ->
-                        new EntityNotFoundException("Certificado não encontrado."));
-                dto = certificadoMapper.toAtualizacaoDto(certificado);
-                model.addAttribute("certificado", dto);
-            }
-            return "certificado/formulario";
-        } catch (EntityNotFoundException exception){
-            redirectAttributes.addFlashAttribute("Erro", exception.getMessage());
-            return "redirect:/certificado/formulario";
-        }
-    }
-
-    @PostMapping("/salvar")
-    public String salvar(@ModelAttribute("certificado") @Valid AtualizacaoCertificado dto,
-                         BindingResult result,
-                         RedirectAttributes redirectAttributes,
-                         Model model) {
-        if (result.hasErrors()){
-            return "certificado/formulario";
-        }
-        try {
-            Certificado certificadoSalvo = certificadoService.salvarOuAtualizar(dto);
-            String mensagem = dto.id() != null
-                    ? "Certificado '" + certificadoSalvo.getAssinatura() + "' atualizado com sucesso!"
-                    : "Certificado '" + certificadoSalvo.getAssinatura() + "' criado com sucesso!";
-            redirectAttributes.addFlashAttribute("message", mensagem);
-            return "redirect:/certificado/listagem";
-        } catch (EntityNotFoundException exception){
-            redirectAttributes.addFlashAttribute("Erro", exception.getMessage());
-            return "redirect:/certificado/formulario" + (dto.id() != null ? "?id=" + dto.id() : "");
-        }
-    }
-
-    @GetMapping("/delete/{id}")
+    @Operation(summary = "Upload de assinatura em lote por evento",
+            description = "Salva a imagem da assinatura e a vincula a todos os certificados gerados para o evento especificado.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Assinatura vinculada com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Evento não encontrado")
+    })
+    @PostMapping(value = "/evento/{eventoId}/upload-assinatura", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Transactional
-    public String deletarCertificado(@PathVariable("id") Long id, Model model, RedirectAttributes redirectAttributes){
-        try {
-            certificadoService.apagarPorId(id);
-            redirectAttributes.addFlashAttribute("message", "O certificado " + id + " foi deletado.");
-      }catch (Exception exception){
-            redirectAttributes.addFlashAttribute("message", exception.getMessage());
-        }
-        return "redirect:/certificado/listagem";
+    public ResponseEntity<?> salvarAssinaturaPorEvento(
+            @Parameter(description = "ID do evento")
+            @PathVariable Long eventoId,
+            @Parameter(description = "Arquivo de imagem da assinatura")
+            @RequestParam("file") MultipartFile file) {
+        eventoService.procurarPorId(eventoId).orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
+        String caminhoFinal = assinaturaStorage.salvar(file);
+        certificadoService.atualizarAssinaturaPorEvento(eventoId, caminhoFinal);
+
+        return ResponseEntity.ok(Map.of("mensagem", "Assinatura vinculada a todos os certificados do evento!"));
+    }
+
+    @Operation(summary = "Upload de assinatura individual para certificado",
+            description = "Salva a imagem da assinatura e a vincula a um certificado específico.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Assinatura vinculada com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Certificado não encontrado")
+    })
+    @PostMapping(value = "/{id}/upload-assinatura", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Transactional
+    public ResponseEntity<?> salvarAssinaturaNaPasta(
+            @Parameter(description = "ID do certificado")
+            @PathVariable Long id,
+            @Parameter(description = "Arquivo de imagem da assinatura")
+            @RequestParam("file") MultipartFile file) {
+        certificadoService.procurarPorId(id).orElseThrow(() -> new EntityNotFoundException("Certificado não encontrado."));
+        String caminhoFinal = assinaturaStorage.salvar(file);
+
+        certificadoService.atualizarCaminhoAssinatura(id, caminhoFinal);
+
+        return ResponseEntity.ok(Map.of("mensagem", "Assinatura vinculada com sucesso!"));
+    }
+
+    @Operation(summary = "Exibir imagem da assinatura visual",
+            description = "Retorna o arquivo de imagem da assinatura associada ao certificado.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Imagem retornada com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "404", description = "Certificado ou arquivo não encontrado")
+    })
+    @GetMapping("/{id}/assinatura-visual")
+    public ResponseEntity<Resource> exibirImagemDaPasta(
+            @Parameter(description = "ID do certificado")
+            @PathVariable Long id) {
+        return certificadoService.procurarPorId(id)
+                .map(certificado -> AssinaturaVisualResponse.carregar(certificado.getCaminhoAssinaturaVisual()))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

@@ -1,87 +1,89 @@
 package com.fatec.muttley.disciplina;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-@Controller
-@RequestMapping("/disciplina")
+import java.util.List;
+import java.util.Map;
+
+@Tag(name = "Administração - Disciplinas", description = "Gestão de disciplinas acadêmicas vinculadas aos eventos")
+@SecurityRequirement(name = "bearerAuth")
+@RestController
+@RequestMapping("/api/admin/disciplinas")
+@RequiredArgsConstructor
 public class DisciplinaController {
-    @Autowired
-        private DisciplinaService disciplinaService;
-    @Autowired
-        private DisciplinaMapper disciplinaMapper;
 
-    @GetMapping("/listagem")
-    public String carregaPaginaFormulario(Model model){
-        model.addAttribute("listaDisciplinas", disciplinaService.procurarTodas());
-        return "disciplina/listagem";
+    private final DisciplinaService disciplinaService;
+
+    private final DisciplinaMapper disciplinaMapper;
+
+    @Operation(summary = "Listar todas as disciplinas")
+    @GetMapping
+    public ResponseEntity<List<Disciplina>> listarTodas() {
+        return ResponseEntity.ok(disciplinaService.procurarTodas());
     }
 
-    @GetMapping("/formulario")
-    public String mostraFormulario (@RequestParam(required = false)Long id, Model model){
-        AtualizacaoDisciplina dto;
-        if(id != null){
-            Disciplina disciplina = disciplinaService.procurarPorId(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Disciplina não encontrada."));
-            dto = disciplinaMapper.toAtualizacaoDto(disciplina);
-        } else {
-            dto = new AtualizacaoDisciplina(null, "", "", "");
-        }
-        model.addAttribute("disciplina", dto);
-        return "disciplina/formulario";
+    @Operation(summary = "Buscar disciplina por ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Disciplina encontrada"),
+            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<AtualizacaoDisciplina> buscarPorId(
+            @Parameter(description = "ID da disciplina") @PathVariable Long id) {
+        Disciplina disciplina = disciplinaService.procurarPorId(id)
+                .orElseThrow(() -> new EntityNotFoundException("Disciplina não encontrada."));
+        return ResponseEntity.ok(disciplinaMapper.toAtualizacaoDto(disciplina));
     }
 
-    @GetMapping("/formulario/{id}")
-    public String carregaPaginaFormulario (@PathVariable("id")Long id, Model model, RedirectAttributes redirectAttributes) {
-        AtualizacaoDisciplina dto;
-        try{
-            if (id != null){
-                Disciplina disciplina = disciplinaService.procurarPorId(id).orElseThrow(() ->
-                        new EntityNotFoundException("Disciplina não encontrada"));
-                dto = disciplinaMapper.toAtualizacaoDto(disciplina);
-                model.addAttribute("disciplina", dto);
-            }
-            return "disciplina/formulario";
-        } catch (EntityNotFoundException exception){
-            redirectAttributes.addFlashAttribute("Erro", exception.getMessage());
-            return "redirect:/disciplina/formulario";
-        }
+    @Operation(summary = "Criar nova disciplina")
+    @ApiResponse(responseCode = "201", description = "Disciplina criada com sucesso")
+    @PostMapping
+    public ResponseEntity<Map<String, String>> criar(@RequestBody @Valid AtualizacaoDisciplina dto) {
+        Disciplina disciplinaSalva = disciplinaService.salvarOuAtualizar(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "Disciplina '" + disciplinaSalva.getNome() + "' criada com sucesso."));
     }
 
-    @PostMapping("/salvar")
-    public String salvar(@ModelAttribute("disciplina")@Valid AtualizacaoDisciplina dto, BindingResult result, RedirectAttributes redirectAttributes, Model model){
-        if (result.hasErrors()){
-            return "disciplina/formulario";
-        }
-        try{
-            Disciplina disciplinaSalva = disciplinaService.salvarOuAtualizar(dto);
-            String mensagem = dto.id() != null
-                ? "Disciplina '"+disciplinaSalva.getNome() +"' atualizada com êxito"
-                : "Disicplina '"+disciplinaSalva.getNome()+"' criada com êxito";
-            redirectAttributes.addFlashAttribute("message", mensagem);
-            return "redirect:/disciplina/listagem";
-        }catch (EntityNotFoundException exception){
-            redirectAttributes.addFlashAttribute("erro", exception.getMessage());
-            return "redirect:/disciplina/formulario" + (dto.id() != null ? "?id= " + dto.id() : "");
-        }
+    @Operation(summary = "Atualizar disciplina existente")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Disciplina atualizada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, String>> atualizar(
+            @Parameter(description = "ID da disciplina") @PathVariable Long id,
+            @RequestBody @Valid AtualizacaoDisciplina dto) {
+        disciplinaService.procurarPorId(id)
+                .orElseThrow(() -> new EntityNotFoundException("Disciplina não encontrada."));
+        dto = dto.withId(id);
+        Disciplina disciplinaSalva = disciplinaService.salvarOuAtualizar(dto);
+        return ResponseEntity.ok(Map.of("message", "Disciplina '" + disciplinaSalva.getNome() + "' atualizada com sucesso."));
     }
 
-    @GetMapping("/delete/{id}")
+    @Operation(summary = "Excluir disciplina")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Disciplina excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada")
+    })
+    @DeleteMapping("/{id}")
     @Transactional
-    public String deletarDisciplina(@PathVariable("id") Long id, Model model, RedirectAttributes redirectAttributes){
-        try{
-            disciplinaService.apagarPorId(id);
-            redirectAttributes.addFlashAttribute("message", "O aluno " + id + " foi deletado.");
-        }catch (Exception exception){
-            redirectAttributes.addFlashAttribute("message", exception.getMessage());
-        }
-        return  "redirect:/disciplina/listagem";
+    public ResponseEntity<Map<String, String>> deletar(
+            @Parameter(description = "ID da disciplina") @PathVariable Long id) {
+        disciplinaService.procurarPorId(id)
+                .orElseThrow(() -> new EntityNotFoundException("Disciplina não encontrada."));
+        disciplinaService.apagarPorId(id);
+        return ResponseEntity.ok(Map.of("message", "Disciplina " + id + " deletada com sucesso."));
     }
 }

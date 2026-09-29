@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos/headModeloPdf :: head('Certificado')}"></head>
+<body>
+<div class="certificado">
+    <section class="section-titulo">
+        <div class="text-titulo">
+            <p>C E R T I F I C A D O</p>
+        </div>
+    </section>
+    <section class="section-conteudo">
+        <div class="text-destinatario">
+            <p>Este certificado é concedido ao <span th:text="${pessoa}">Professor</span></p>
+        </div>
+        <div class="text-nome-destinatario">
+            <p th:text="${nome}">Gabriel</p>
+        </div>
+        <div class="text-descricao">
+            <p>
+                <span th:text="${preambulo}">Por ministrar a palestra </span><b><span th:text="${evento}">Inteligência Cibernética em Tempos de Guerra Híbrida</span></b>
+                <span th:text="${predicado}">realizada no dia 30 de março de 2026, promovida pelo Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas.</span>
+            </p>
+        </div>
+        <div class="text-descricao">
+            <p>O evento foi realizado com carga horária de <span th:text="${duracao}">2 (duas) horas.</span></p>
+        </div>
+        <div class="text-data">
+            <p th:text="${data}">São Paulo, 30 de março de 2026</p>
+        </div>
+    </section>
+
+    <section class="section-assinatura" style="text-align: center;">
+        <div style="height: 70px; margin-bottom: -15px;">
+            <img th:if="${assinaturaBase64 != null and assinaturaBase64 != ''}"
+                 th:src="'data:' + ${assinaturaMime} + ';base64,' + ${assinaturaBase64}"
+                 style="max-height: 70px; width: auto; display: block; margin: 0 auto;"
+                 alt="Assinatura Digital" />
+        </div>
+        <div>
+            <hr class="linha-assinatura">
+        </div>
+        <div class="text-assinatura">
+            <p>Coordenador do curso de Análise e Desenvolvimento de Sistemas da FATEC Zona Leste</p>
+        </div>
+    </section>
+</div>
+</body>
+</html>

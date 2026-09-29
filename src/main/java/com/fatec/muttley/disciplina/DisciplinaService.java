@@ -1,8 +1,9 @@
 package com.fatec.muttley.disciplina;
 
-import com.fatec.muttley.certificado.CertificadoRepository;
+import com.fatec.muttley.professor.Professor;
+import com.fatec.muttley.professor.ProfessorRepository;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -10,33 +11,43 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class DisciplinaService {
-    @Autowired
-    private DisciplinaRepository disciplinaRepository;
-    @Autowired
-    private DisciplinaMapper disciplinaMapper;
+    private final DisciplinaRepository disciplinaRepository;
 
-    public Disciplina salvarOuAtualizar(AtualizacaoDisciplina dto){
-        if (dto.id() != null){
-            Disciplina existente = disciplinaRepository.findById(dto.id())
-                    .orElseThrow(() -> new EntityNotFoundException("Disciplina não encontrada com id: " + dto.id()));
-            disciplinaMapper.updateEntityFromDto(dto, existente);
-            return disciplinaRepository.save(existente);
-        } else {
-            Disciplina novaDisciplina = disciplinaMapper.toEntityFromAtualizacao(dto);
-            return disciplinaRepository.save(novaDisciplina);
+    private final ProfessorRepository professorRepository;
+
+    private final DisciplinaMapper disciplinaMapper;
+
+    public Disciplina salvarOuAtualizar(AtualizacaoDisciplina dto) {
+        Professor professor = null;
+        if (dto.id_professor() != null) {
+            professor = professorRepository.findById(dto.id_professor())
+                    .orElseThrow(() -> new EntityNotFoundException("Professor não encontrado com id: " + dto.id_professor()));
         }
+
+        Disciplina disciplina;
+        if (dto.id() != null) {
+            disciplina = disciplinaRepository.findById(dto.id())
+                    .orElseThrow(() -> new EntityNotFoundException("Disciplina não encontrada com id: " + dto.id()));
+            disciplinaMapper.updateEntityFromDto(dto, disciplina);
+        } else {
+            disciplina = disciplinaMapper.toEntityFromAtualizacao(dto);
+        }
+
+        disciplina.setProfessor(professor);
+        return disciplinaRepository.save(disciplina);
     }
 
-    public List<Disciplina> procurarTodas(){
+    public List<Disciplina> procurarTodas() {
         return disciplinaRepository.findAll(Sort.by("nome").ascending());
     }
 
-    public void apagarPorId(Long id){
+    public void apagarPorId(Long id) {
         disciplinaRepository.deleteById(id);
     }
 
-    public Optional<Disciplina> procurarPorId(Long id){
+    public Optional<Disciplina> procurarPorId(Long id) {
         return disciplinaRepository.findById(id);
     }
 }

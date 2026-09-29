@@ -1,6 +1,8 @@
 package com.fatec.muttley.disciplina;
 
+import com.fatec.muttley.disciplina.enums.TurnoDisciplinaEnum;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public record AtualizacaoDisciplina(
         Long id,
@@ -11,6 +13,12 @@ public record AtualizacaoDisciplina(
         @NotBlank(message = "A descrição é obrigatória")
         String descricao,
 
-        @NotBlank(message = "O turno é obrigatório")
-        String turno
-) {}
+        @NotNull(message = "O turno é obrigatório")
+        TurnoDisciplinaEnum turno,
+
+        Long id_professor
+) {
+        public AtualizacaoDisciplina withId(Long id) {
+                return new AtualizacaoDisciplina(id, this.nome(), this.descricao(), this.turno(), this.id_professor());
+        }
+}

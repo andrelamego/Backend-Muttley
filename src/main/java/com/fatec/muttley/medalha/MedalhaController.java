@@ -1,104 +1,89 @@
 package com.fatec.muttley.medalha;
 
-import com.fatec.muttley.aluno.AlunoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-@Controller
-@RequestMapping("/medalha")
+import java.util.List;
+import java.util.Map;
+
+@Tag(name = "Administração - Medalhas", description = "Gestão de medalhas e conquistas do sistema de gamificação")
+@SecurityRequirement(name = "bearerAuth")
+@RestController
+@RequestMapping("/api/admin/medalhas")
+@RequiredArgsConstructor
 public class MedalhaController {
-    @Autowired
-    private MedalhaService medalhaService;
 
-    @Autowired
-    private AlunoService alunoService;
+    private final MedalhaService medalhaService;
 
-    @Autowired
-    private MedalhaMapper medalhaMapper;
+    private final MedalhaMapper medalhaMapper;
 
-    @GetMapping("/listagem")
-    public String carregaPaginaFormulario (Model model){
-        //devolver DTO
-        model.addAttribute("listaMedalhas", medalhaService.procurarTodos());
-        return "medalha/listagem";
+    @Operation(summary = "Listar todas as medalhas")
+    @GetMapping
+    public ResponseEntity<List<Medalha>> listarTodos() {
+        return ResponseEntity.ok(medalhaService.procurarTodos());
     }
 
-    @GetMapping("/formulario")
-    public String mostrarFormulario(@RequestParam(required = false) Long id, Model model) {
-        AtualizacaoMedalha dto;
-        if (id != null) {
-            //edição: Carrega dados existentes
-            Medalha medalha = medalhaService.procurarPorId(id)
-                    .orElseThrow(() -> new EntityNotFoundException("Medalha não encontrada"));
-            dto = medalhaMapper.toAtualizacaoDto(medalha);
-        } else {
-            // criação: DTO vazio
-            dto = new AtualizacaoMedalha(null, "", "", null);
-        }
-        model.addAttribute("medalha", dto);
-        model.addAttribute("alunos", alunoService.procurarTodos());
-        return "medalha/formulario";
-    }
-    @GetMapping ("/formulario/{id}")
-    public String carregaPaginaFormulario (@PathVariable("id") Long id, Model model,
-                                           RedirectAttributes redirectAttributes) {
-        AtualizacaoMedalha dto;
-        try {
-            if(id != null) {
-                Medalha medalha = medalhaService.procurarPorId(id).orElseThrow(() ->
-                        new EntityNotFoundException("Medalha não encontrada"));
-                model.addAttribute("alunos", alunoService.procurarTodos());
-                //mapear medalha para AtualizacaoMedalha
-                dto = medalhaMapper.toAtualizacaoDto(medalha);
-                model.addAttribute("medalha", dto);
-            }
-            return "medalha/formulario";
-        } catch (EntityNotFoundException e) {
-            //resolver erros
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/medalha/formulario";
-        }
+    @Operation(summary = "Buscar medalha por ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Medalha encontrada"),
+            @ApiResponse(responseCode = "404", description = "Medalha não encontrada")
+    })
+    @GetMapping("/{id}")
+    public ResponseEntity<AtualizacaoMedalha> buscarPorId(
+            @Parameter(description = "ID da medalha") @PathVariable Long id) {
+        Medalha medalha = medalhaService.procurarPorId(id)
+                .orElseThrow(() -> new EntityNotFoundException("Medalha não encontrada."));
+        return ResponseEntity.ok(medalhaMapper.toAtualizacaoDto(medalha));
     }
 
-    @PostMapping("/salvar")
-    public String salvar(@ModelAttribute("medalha") @Valid AtualizacaoMedalha dto,
-                         BindingResult result,
-                         RedirectAttributes redirectAttributes,
-                         Model model) {
-        if (result.hasErrors()) {
-            // Recarrega dados necessários para mostrar erros
-            model.addAttribute("alunos", alunoService.procurarTodos());
-            return "medalha/formulario";
-        }
-        try {
-            Medalha medalhaSalvo = medalhaService.salvarOuAtualizar(dto);
-            String mensagem = dto.id() != null
-                    ? "Medalha '" + medalhaSalvo.getNome() + "' atualizada com sucesso!"
-                    : "Medalha '" + medalhaSalvo.getNome() + "' criada com sucesso!";
-            redirectAttributes.addFlashAttribute("message", mensagem);
-            return "redirect:/medalha/listagem";
-        } catch (EntityNotFoundException e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/medalha/formulario" + (dto.id() != null ? "?id=" + dto.id() : "");
-        }
+    @Operation(summary = "Criar nova medalha")
+    @ApiResponse(responseCode = "201", description = "Medalha criada com sucesso")
+    @PostMapping
+    public ResponseEntity<Map<String, String>> criar(@RequestBody @Valid AtualizacaoMedalha dto) {
+        Medalha medalhaSalva = medalhaService.salvarOuAtualizar(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "Medalha '" + medalhaSalva.getNome() + "' criada com sucesso!"));
     }
 
-    @GetMapping("/delete/{id}")
+    @Operation(summary = "Atualizar medalha existente")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Medalha atualizada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Medalha não encontrada")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, String>> atualizar(
+            @Parameter(description = "ID da medalha") @PathVariable Long id,
+            @RequestBody @Valid AtualizacaoMedalha dto) {
+        medalhaService.procurarPorId(id)
+                .orElseThrow(() -> new EntityNotFoundException("Medalha não encontrada."));
+        dto = dto.withId(id);
+        Medalha medalhaSalva = medalhaService.salvarOuAtualizar(dto);
+        return ResponseEntity.ok(Map.of("message", "Medalha '" + medalhaSalva.getNome() + "' atualizada com sucesso!"));
+    }
+
+    @Operation(summary = "Excluir medalha")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Medalha excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Medalha não encontrada")
+    })
+    @DeleteMapping("/{id}")
     @Transactional
-    public String deletarMedalha(@PathVariable("id") Long id, Model model, RedirectAttributes redirectAttributes) {
-        try {
-            medalhaService.apagarPorId(id);
-            redirectAttributes.addFlashAttribute("message", "A medalha " + id + " foi apagada!");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("message", e.getMessage());
-        }
-        return "redirect:/medalha/listagem";
+    public ResponseEntity<Map<String, String>> deletar(
+            @Parameter(description = "ID da medalha") @PathVariable Long id) {
+        medalhaService.procurarPorId(id)
+                .orElseThrow(() -> new EntityNotFoundException("Medalha não encontrada."));
+        medalhaService.apagarPorId(id);
+        return ResponseEntity.ok(Map.of("message", "Medalha " + id + " foi apagada!"));
     }
 }

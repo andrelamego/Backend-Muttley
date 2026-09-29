@@ -1,0 +1,119 @@
+package com.fatec.muttley.email;
+
+import com.fatec.muttley.certificado.Certificado;
+import com.fatec.muttley.email.dto.CadastroEmail;
+import com.fatec.muttley.email.dto.CertificadoEmail;
+import com.fatec.muttley.email.dto.EventoEmail;
+import com.fatec.muttley.email.dto.InscricaoEmail;
+import com.fatec.muttley.evento.Evento;
+import com.fatec.muttley.participacao.Participacao;
+import com.fatec.muttley.pessoa.Pessoa;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class EmailProducer {
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    private static final String TOPIC_INSCRICAO = "email.inscricao.confirmada";
+    private static final String TOPIC_CREDENCIAIS = "email.completar.cadastro";
+    private static final String TOPIC_CANCELADO = "email.evento.cancelado";
+    private static final String TOPIC_CONCLUIDO = "email.evento.concluido";
+    private static final String TOPIC_CERTIFICADO = "email.certificado";
+
+    public void publicarConfirmacaoInscricao(Participacao participacao) {
+        Evento evento = participacao.getEvento();
+        var dto = new InscricaoEmail(
+                participacao.getPessoa().getEmail(),
+                participacao.getPessoa().getNome(),
+                evento.getTema(),
+                evento.getData().toString(),
+                evento.getHorarioInicio(),
+                evento.getHorarioFim(),
+                evento.getLocal() != null ? evento.getLocal().getNome() : "A definir",
+                participacao.getInscricao()
+        );
+        String chave = String.valueOf(participacao.getId());
+        aposCommit(() -> kafkaTemplate.send(TOPIC_INSCRICAO, chave, dto));
+        log.info("Email de confirmação enfileirado: participacaoId={}", participacao.getId());
+    }
+
+    public void publicarCompletarCadastro(Participacao participacao, String baseUrl, String token){
+        publicarCompletarCadastro(participacao.getPessoa(), baseUrl, token);
+    }
+
+    public void publicarCompletarCadastro(Pessoa pessoa, String baseUrl, String token) {
+        var dto = new CadastroEmail(
+                pessoa.getEmail(),
+                pessoa.getNome(),
+                token,
+                baseUrl
+        );
+        String chave = String.valueOf(pessoa.getId());
+        aposCommit(() -> kafkaTemplate.send(TOPIC_CREDENCIAIS, chave, dto));
+        log.info("Convite de cadastro enfileirado: pessoaId={}", pessoa.getId());
+    }
+
+    public void publicarEventoCancelado(Evento evento, List<Participacao> inscritos) {
+        inscritos.forEach(p -> {
+            var dto = new EventoEmail(
+                    p.getPessoa().getEmail(),
+                    p.getPessoa().getNome(),
+                    evento.getTema(),
+                    evento.getData().toString()
+            );
+            String chave = String.valueOf(evento.getId());
+            aposCommit(() -> kafkaTemplate.send(TOPIC_CANCELADO, chave, dto));
+        });
+        log.info("Emails de cancelamento enfileirados: eventoId={}, total={}", evento.getId(), inscritos.size());
+    }
+
+    public void publicarEventoConcluido(Evento evento, List<Participacao> inscritos) {
+        inscritos.forEach(p -> {
+            var dto = new EventoEmail(
+                    p.getPessoa().getEmail(),
+                    p.getPessoa().getNome(),
+                    evento.getTema(),
+                    evento.getData().toString()
+            );
+            String chave = String.valueOf(evento.getId());
+            aposCommit(() -> kafkaTemplate.send(TOPIC_CONCLUIDO, chave, dto));
+        });
+        log.info("Emails de conclusão enfileirados: eventoId={}, total={}", evento.getId(), inscritos.size());
+    }
+
+    public void publicarCertificados(List<Certificado> certificados, String baseUrl){
+        certificados.forEach(c -> {
+            var dto = new CertificadoEmail(
+                    c.getParticipacao().getPessoa().getEmail(),
+                    c.getParticipacao().getPessoa().getNome(),
+                    c.getParticipacao().getEvento().getTema(),
+                    c.getParticipacao().getEvento().getData().toString(),
+                    c.getDataEmissao().toString(),
+                    baseUrl,
+                    c.getUrlPublica()
+            );
+            aposCommit(() -> kafkaTemplate.send(TOPIC_CERTIFICADO, dto));
+        });
+        log.info("Emails com certificados enfileirados: total={}", certificados.size());
+    }
+
+    private void aposCommit(Runnable envio) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override public void afterCommit() { envio.run(); }
+                    });
+        } else {
+            envio.run();
+        }
+    }
+}

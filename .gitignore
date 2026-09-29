@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Arquivos gerados em runtime ###
+uploads/
+
+### Configuração privada do ambiente local ###
+/application-local.properties
