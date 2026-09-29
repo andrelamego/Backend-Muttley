@@ -3,9 +3,9 @@ info:
   title: Muttley API
   description: >-
     API REST do Sistema Muttley para Gestão de Eventos Acadêmicos, Inscrições,
-    Emissão e Validação de Certificados com Assinatura Digital e Gamificação por Medalhas.
+    Emissão e Validação de Certificados com Assinatura Visual e Gamificação por Medalhas.
     Desenvolvido para a FATEC Zona Leste.
-  version: 1.0.0
+  version: 0.1.0-alpha
   contact:
     name: Equipe Muttley - FATEC Zona Leste
     url: https://github.com/andrelamego/Backend-Muttley

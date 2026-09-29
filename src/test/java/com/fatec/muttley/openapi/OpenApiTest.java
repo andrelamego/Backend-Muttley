@@ -19,7 +19,7 @@ class OpenApiTest {
         assertThat(openAPI).isNotNull();
         assertThat(openAPI.getInfo()).isNotNull();
         assertThat(openAPI.getInfo().getTitle()).isEqualTo("Muttley API");
-        assertThat(openAPI.getInfo().getVersion()).isEqualTo("v1.0.0");
+        assertThat(openAPI.getInfo().getVersion()).isEqualTo("0.1.0-alpha");
         assertThat(openAPI.getInfo().getDescription()).contains("Muttley");
 
         assertThat(openAPI.getComponents()).isNotNull();

@@ -10,10 +10,10 @@
     </parent>
     <groupId>com.fatec</groupId>
     <artifactId>Muttley</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.1.0-alpha</version>
     <name>Muttley</name>
-    <description>Muttley</description>
-    <url/>
+    <description>API de gestão de eventos acadêmicos, participações, certificados e medalhas.</description>
+    <url>https://github.com/andrelamego/Backend-Muttley</url>
     <licenses>
         <license/>
     </licenses>

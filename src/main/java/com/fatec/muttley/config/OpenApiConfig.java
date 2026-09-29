@@ -21,7 +21,7 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Muttley API")
                         .description("API REST do Sistema Muttley para Gestão de Eventos, Participações, Emissão de Certificados e Medalhas da FATEC Zona Leste.")
-                        .version("v1.0.0")
+                        .version("0.1.0-alpha")
                         .contact(new Contact()
                                 .name("Equipe Muttley - FATEC Zona Leste")
                                 .url("https://github.com/andrelamego/Backend-Muttley"))
