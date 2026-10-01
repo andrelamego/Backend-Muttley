@@ -19,7 +19,7 @@ public class AlunoService {
     public Aluno salvarOuAtualizar(AtualizacaoAluno dto){
         if (dto.id() != null){
             Aluno existente = alunoRepository.findById(dto.id())
-                    .orElseThrow(() -> new EntityNotFoundException("Aluno não encontrado com id: ." + dto.id()));
+                    .orElseThrow(() -> new EntityNotFoundException("Aluno não encontrado com ID: " + dto.id()));
             alunoMapper.updateEntityFromDto(dto, existente);
             return  alunoRepository.save(existente);
         } else {
