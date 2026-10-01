@@ -67,7 +67,7 @@ class EventoControllerTest {
         Participacao p=participacao(1,false); if(!parcial)p.getPessoa().setSenha("hash");
         var request=new InscricaoPublicaRequest("Nome","cpf","teste@example.invalid");
         when(participacoes.registrarInscricaoPublica(10L,request)).thenReturn(p);
-        if (parcial) when(convites.emitir(p.getPessoa())).thenReturn(Optional.of("convite"));
+        if (parcial) when(convites.renovarParaInscricao(p.getPessoa())).thenReturn("convite");
         assertThat(controller.registrarInscricaoPublica(10L,request).getStatusCode().value()).isEqualTo(201);
         verify(emails).publicarConfirmacaoInscricao(p);
         verify(emails,times(parcial?1:0)).publicarCompletarCadastro(p,"https://muttley.example.invalid","convite");

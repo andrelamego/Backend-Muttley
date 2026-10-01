@@ -111,4 +111,27 @@ class CadastroConviteServiceTest {
         assertThat(service.emitir(pessoa)).isPresent().get().isNotEqualTo(token);
         assertThat(pessoa.getCadastroTokenHash()).isNotEqualTo(hash);
     }
+
+    @Test void novaInscricaoGeraConviteMesmoComTokenAnteriorAtivo() {
+        Pessoa pessoa = pessoa(1);
+        pessoa.setSenha(null);
+        String tokenAnterior = service.emitir(pessoa).orElseThrow();
+        String hashAnterior = pessoa.getCadastroTokenHash();
+
+        String novoToken = service.renovarParaInscricao(pessoa);
+
+        assertThat(novoToken).isNotEqualTo(tokenAnterior);
+        assertThat(pessoa.getCadastroTokenHash()).isNotEqualTo(hashAnterior);
+        assertThat(pessoa.getCadastroTokenExpiraEm()).isEqualTo(agora.plus(Duration.ofHours(24)));
+        verify(pessoas, org.mockito.Mockito.times(2)).save(pessoa);
+    }
+
+    @Test void contaConcluidaNaoRecebeNovoConviteNaInscricao() {
+        Pessoa pessoa = pessoa(1);
+        pessoa.setSenha("hash");
+
+        assertThatThrownBy(() -> service.renovarParaInscricao(pessoa))
+                .isInstanceOf(ResponseStatusException.class);
+        verify(pessoas, never()).save(any());
+    }
 }

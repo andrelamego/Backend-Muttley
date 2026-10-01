@@ -127,9 +127,9 @@ public class EventoController {
         Participacao participacao = participacaoService.registrarInscricaoPublica(id, dados);
 
         emailProducer.publicarConfirmacaoInscricao(participacao);
-        if(participacao.getPessoa().getSenha() == null){
-            cadastroConviteService.emitir(participacao.getPessoa())
-                    .ifPresent(token -> emailProducer.publicarCompletarCadastro(participacao, frontendUrl, token));
+        if (participacao.getPessoa().getSenha() == null) {
+            String token = cadastroConviteService.renovarParaInscricao(participacao.getPessoa());
+            emailProducer.publicarCompletarCadastro(participacao, frontendUrl, token);
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
