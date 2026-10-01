@@ -104,6 +104,6 @@ public class CertificadoController {
             @PathVariable Long id) {
         return certificadoService.procurarPorId(id)
                 .map(certificado -> AssinaturaVisualResponse.carregar(certificado.getCaminhoAssinaturaVisual()))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException("Certificado não encontrado."));
     }
 }

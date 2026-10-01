@@ -1,11 +1,13 @@
 package com.fatec.muttley.certificado;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fatec.muttley.evento.EventoService;
 import com.fatec.muttley.pdf.PdfClient;
+import jakarta.persistence.EntityNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -28,8 +30,7 @@ class CertificadoAssinaturaVisualTest {
 
     @Test
     void certificadoInexistenteRetorna404NasDuasRotas() {
-        assertThat(admin.exibirImagemDaPasta(7L).getStatusCode().value()).isEqualTo(404);
-        assertThat(publico.exibirImagemPublica(7L).getStatusCode().value()).isEqualTo(404);
+        assertNotFound();
     }
 
     @Test
@@ -62,8 +63,8 @@ class CertificadoAssinaturaVisualTest {
     }
 
     private void assertNotFound() {
-        assertThat(admin.exibirImagemDaPasta(7L).getStatusCode().value()).isEqualTo(404);
-        assertThat(publico.exibirImagemPublica(7L).getStatusCode().value()).isEqualTo(404);
+        assertThatThrownBy(() -> admin.exibirImagemDaPasta(7L)).isInstanceOf(EntityNotFoundException.class);
+        assertThatThrownBy(() -> publico.exibirImagemPublica(7L)).isInstanceOf(EntityNotFoundException.class);
     }
 
     private void assertImagem(ResponseEntity<Resource> resposta, MediaType mime, byte[] conteudo) throws Exception {

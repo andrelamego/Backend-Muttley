@@ -1,5 +1,6 @@
 package com.fatec.muttley.certificado;
 
+import jakarta.persistence.EntityNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -14,20 +15,24 @@ final class AssinaturaVisualResponse {
 
     static ResponseEntity<Resource> carregar(String caminho) {
         if (caminho == null || caminho.isBlank()) {
-            return ResponseEntity.notFound().build();
+            throw ausente();
         }
 
         try {
             Path arquivo = Path.of(caminho);
             if (!Files.isRegularFile(arquivo) || !Files.isReadable(arquivo)) {
-                return ResponseEntity.notFound().build();
+                throw ausente();
             }
 
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(AssinaturaStorage.mime(arquivo)))
                     .body(new FileSystemResource(arquivo));
         } catch (InvalidPathException exception) {
-            return ResponseEntity.notFound().build();
+            throw ausente();
         }
+    }
+
+    private static EntityNotFoundException ausente() {
+        return new EntityNotFoundException("Assinatura não encontrada.");
     }
 }

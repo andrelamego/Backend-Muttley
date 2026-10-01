@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -27,6 +26,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Tag(name = "Autenticação", description = "Endpoints de autenticação, registro de usuários e emissão de tokens JWT")
 @RequiredArgsConstructor
@@ -109,36 +109,23 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<?> validarCredenciais(@RequestBody @Valid LoginRequest loginRequest) {
-        try {
-            Optional<Pessoa> pessoaOptional = pessoaService.procurarPorEmail(loginRequest.email());
-
-            if (pessoaOptional.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("message", "Email ou senha invalidos"));
-            }
-
-            Pessoa pessoaSalva = pessoaOptional.get();
-
-            if (!passwordEncoder.matches(loginRequest.senha(), pessoaSalva.getSenha())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("message", "Email ou senha invalidos"));
-            }
-
-            if (pessoaSalva.getRole() == null) {
-                pessoaSalva.setRole(Role.USER);
-                pessoaSalva = pessoaService.salvar(pessoaSalva);
-            }
-
-            return ResponseEntity.ok(new LoginResponse(
-                    jwtService.gerarToken(pessoaSalva),
-                    "Bearer",
-                    jwtService.getExpirationSeconds(),
-                    usuarioResponse(pessoaSalva)
-            ));
-        } catch (EntityNotFoundException exception) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", exception.getMessage()));
+        Pessoa pessoaSalva = pessoaService.procurarPorEmail(loginRequest.email())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email ou senha inválidos."));
+        if (pessoaSalva.getSenha() == null || !passwordEncoder.matches(loginRequest.senha(), pessoaSalva.getSenha())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email ou senha inválidos.");
         }
+
+        if (pessoaSalva.getRole() == null) {
+            pessoaSalva.setRole(Role.USER);
+            pessoaSalva = pessoaService.salvar(pessoaSalva);
+        }
+
+        return ResponseEntity.ok(new LoginResponse(
+                jwtService.gerarToken(pessoaSalva),
+                "Bearer",
+                jwtService.getExpirationSeconds(),
+                usuarioResponse(pessoaSalva)
+        ));
     }
 
     private UsuarioResponse usuarioResponse(Pessoa pessoa) {

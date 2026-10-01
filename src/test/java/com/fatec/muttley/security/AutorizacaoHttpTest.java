@@ -1,5 +1,6 @@
 package com.fatec.muttley.security;
 
+import com.fatec.muttley.exceptions.GlobalExceptionHandler;
 import com.fatec.muttley.pessoa.Role;
 import jakarta.servlet.Filter;
 import java.time.Duration;
@@ -26,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AutorizacaoHttpTest {
     static AnnotationConfigWebApplicationContext context;
     static MockMvc mvc;
-    @Configuration @EnableWebMvc @EnableWebSecurity @Import(SecurityConfig.class)
+    @Configuration @EnableWebMvc @EnableWebSecurity @Import({SecurityConfig.class, GlobalExceptionHandler.class})
     static class Config {
         @Bean Endpoints endpoints() { return new Endpoints(); }
     }
@@ -51,9 +52,16 @@ class AutorizacaoHttpTest {
     @ParameterizedTest @ValueSource(strings={"/api/auth/login","/api/auth/register","/api/eventos/10/inscricoes","/api/eventos/10/confirmar-presenca/52998224725"})
     void operacoesPublicasDispensamAutenticacao(String path) throws Exception { mvc.perform(post(path)).andExpect(status().isOk()); }
     @ParameterizedTest @ValueSource(strings={"/api/admin/eventos","/api/me","/api/me/certificados","/api/me/participacoes","/api/me/medalhas","/api/participacoes"})
-    void rotasProtegidasSemTokenRetornam401(String path) throws Exception { mvc.perform(get(path)).andExpect(status().isUnauthorized()); }
+    void rotasProtegidasSemTokenRetornam401(String path) throws Exception {
+        mvc.perform(get(path)).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.codigo").value("NAO_AUTENTICADO"))
+                .andExpect(jsonPath("$.erro").isNotEmpty())
+                .andExpect(jsonPath("$.caminho").value(path));
+    }
     @Test void userNaoAcessaAdministracao() throws Exception {
-        mvc.perform(get("/api/admin/eventos").header("Authorization","Bearer "+token(Role.USER))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/eventos").header("Authorization","Bearer "+token(Role.USER)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("ACESSO_NEGADO"));
     }
     @Test void adminAcessaAdministracao() throws Exception {
         mvc.perform(get("/api/admin/eventos").header("Authorization","Bearer "+token(Role.ADMIN))).andExpect(status().isOk());
@@ -62,6 +70,7 @@ class AutorizacaoHttpTest {
         mvc.perform(get("/api/me").header("Authorization","Bearer "+token(Role.USER))).andExpect(status().isOk());
     }
     @Test void tokenMalformadoRetorna401() throws Exception {
-        mvc.perform(get("/api/me").header("Authorization","Bearer invalido")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/me").header("Authorization","Bearer invalido"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.codigo").value("NAO_AUTENTICADO"));
     }
 }

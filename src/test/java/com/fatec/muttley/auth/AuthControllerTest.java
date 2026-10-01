@@ -9,6 +9,7 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 import static com.fatec.muttley.support.Cenarios.*;
 import static org.assertj.core.api.Assertions.*;
@@ -48,12 +49,16 @@ class AuthControllerTest {
         verifyNoInteractions(convites,emails);
     }
     @Test void RN_AUT_06_emailDesconhecidoRetorna401SemToken() {
-        assertThat(controller.validarCredenciais(new AuthController.LoginRequest("teste@example.invalid","senha")).getStatusCode().value()).isEqualTo(401);
+        assertThatThrownBy(() -> controller.validarCredenciais(new AuthController.LoginRequest("teste@example.invalid","senha")))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(erro -> assertThat(((ResponseStatusException) erro).getStatusCode().value()).isEqualTo(401));
         verifyNoInteractions(encoder,tokens);
     }
     @Test void RN_AUT_06_senhaErradaRetorna401SemToken() {
         Pessoa p=pessoa(1); p.setSenha("hash"); when(pessoas.procurarPorEmail(p.getEmail())).thenReturn(Optional.of(p));
-        assertThat(controller.validarCredenciais(new AuthController.LoginRequest(p.getEmail(),"errada")).getStatusCode().value()).isEqualTo(401);
+        assertThatThrownBy(() -> controller.validarCredenciais(new AuthController.LoginRequest(p.getEmail(),"errada")))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(erro -> assertThat(((ResponseStatusException) erro).getStatusCode().value()).isEqualTo(401));
         verifyNoInteractions(tokens);
     }
     @Test void RF_AUT_02_03_loginValidoRetornaBearerEDadosSemSenha() {
