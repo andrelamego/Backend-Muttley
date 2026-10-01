@@ -86,6 +86,10 @@ paths:
           description: Solicitação recebida
         '400':
           description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
     put:
       tags:
         - Autenticação
@@ -112,6 +116,10 @@ paths:
                 $ref: '#/components/schemas/UsuarioResponse'
         '404':
           description: Convite inválido ou expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/auth/login:
     post:
@@ -134,6 +142,10 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
         '401':
           description: Email ou senha inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/me:
     get:
@@ -152,8 +164,16 @@ paths:
                 $ref: '#/components/schemas/PessoaMeResponse'
         '401':
           description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
         '404':
           description: Usuário não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/me/certificados:
     get:
@@ -174,6 +194,10 @@ paths:
                   $ref: '#/components/schemas/CertificadoUsuarioResponse'
         '401':
           description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/me/medalhas:
     get:
@@ -194,6 +218,10 @@ paths:
                   $ref: '#/components/schemas/MedalhaUsuarioResponse'
         '401':
           description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/me/participacoes:
     get:
@@ -214,6 +242,10 @@ paths:
                   $ref: '#/components/schemas/ParticipacaoUsuarioResponse'
         '401':
           description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/eventos:
     get:
@@ -252,6 +284,10 @@ paths:
                 $ref: '#/components/schemas/EventoPublicoResponse'
         '404':
           description: Evento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/eventos/{id}/inscricoes:
     post:
@@ -276,8 +312,16 @@ paths:
           description: Inscrição realizada com sucesso
         '400':
           description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
         '404':
           description: Evento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/eventos/{eventoId}/confirmar-presenca/{cpf}:
     post:
@@ -302,8 +346,16 @@ paths:
           description: Presença confirmada
         '400':
           description: CPF inválido ou erro de regra
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
         '404':
           description: Participação ou evento não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/certificados/{codigo}:
     get:
@@ -322,6 +374,10 @@ paths:
           description: Certificado encontrado
         '404':
           description: Certificado não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/certificados/{codigo}/preview:
     get:
@@ -344,6 +400,10 @@ paths:
                 format: binary
         '404':
           description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/certificados/{codigo}/download:
     get:
@@ -366,6 +426,10 @@ paths:
                 format: binary
         '404':
           description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /{id}/assinatura-visual:
     get:
@@ -384,6 +448,10 @@ paths:
           description: Imagem da assinatura
         '404':
           description: Não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/pessoa/dados-cadastro/{token}:
     get:
@@ -405,6 +473,10 @@ paths:
                 $ref: '#/components/schemas/RegisterInfo'
         '404':
           description: Não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/participacoes:
     get:
@@ -418,6 +490,10 @@ paths:
           description: Lista de participações
         '401':
           description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
     post:
       tags:
         - Participações
@@ -435,8 +511,16 @@ paths:
           description: Participação criada
         '400':
           description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
         '401':
           description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/participacoes/{id}:
     get:
@@ -457,8 +541,16 @@ paths:
           description: Participação encontrada
         '401':
           description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
         '404':
           description: Não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
     put:
       tags:
         - Participações
@@ -483,6 +575,10 @@ paths:
           description: Atualizada com sucesso
         '404':
           description: Não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
     delete:
       tags:
         - Participações
@@ -501,6 +597,10 @@ paths:
           description: Deletada com sucesso
         '404':
           description: Não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/admin/inicio:
     get:
@@ -514,8 +614,16 @@ paths:
           description: Métricas recuperadas
         '401':
           description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
         '403':
           description: Acesso negado (requer papel ADMIN)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/admin/eventos:
     get:
@@ -554,8 +662,16 @@ paths:
           description: Página de eventos
         '401':
           description: Não autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
         '403':
           description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
     post:
       tags:
         - Eventos
@@ -573,6 +689,10 @@ paths:
           description: Evento criado com sucesso
         '400':
           description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/admin/eventos/{id}:
     get:
@@ -593,6 +713,10 @@ paths:
           description: Evento encontrado
         '404':
           description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
     put:
       tags:
         - Eventos
@@ -617,6 +741,10 @@ paths:
           description: Evento atualizado
         '404':
           description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
     delete:
       tags:
         - Eventos
@@ -635,6 +763,10 @@ paths:
           description: Evento cancelado
         '404':
           description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/admin/eventos/{id}/qrcode-inscricao:
     get:
@@ -660,6 +792,10 @@ paths:
                 format: binary
         '404':
           description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/admin/eventos/{id}/qrcode-confirmacao:
     get:
@@ -685,6 +821,10 @@ paths:
                 format: binary
         '404':
           description: Não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
 
   /api/admin/eventos/{id}/participacoes:
     get:
@@ -1386,6 +1526,28 @@ components:
       description: Insira o token JWT retornado no endpoint /api/auth/login.
 
   schemas:
+    RespostaErro:
+      type: object
+      required: [status, codigo, erro, erros, caminho]
+      properties:
+        status:
+          type: integer
+          example: 400
+        codigo:
+          type: string
+          example: VALIDACAO
+        erro:
+          type: string
+          example: Dados inválidos.
+        erros:
+          type: array
+          items:
+            type: string
+          example: ['email: Email inválido']
+        caminho:
+          type: string
+          example: /api/auth/login
+
     SolicitacaoCadastro:
       type: object
       required: [nome, email]
