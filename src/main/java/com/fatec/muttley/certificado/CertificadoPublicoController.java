@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -236,6 +237,6 @@ public class CertificadoPublicoController {
     public ResponseEntity<Resource> exibirImagemPublica(@PathVariable Long id) {
         return certificadoService.procurarPorId(id)
                 .map(certificado -> AssinaturaVisualResponse.carregar(certificado.getCaminhoAssinaturaVisual()))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException("Certificado não encontrado."));
     }
 }

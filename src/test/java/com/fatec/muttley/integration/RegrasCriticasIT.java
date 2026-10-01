@@ -162,6 +162,34 @@ class RegrasCriticasIT {
         assertThat(dialeto).isInstanceOf("mariadb".equals(System.getProperty("muttley.test.database")) ? MariaDBLegacyDialect.class : MySQLDialect.class);
     }
 
+    @Test void errosHttpUsamMesmoContratoEmAutenticacaoValidacaoERecursos() throws Exception {
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"desconhecido@example.invalid\",\"senha\":\"incorreta\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.codigo").value("NAO_AUTENTICADO"))
+                .andExpect(jsonPath("$.erro").value("Email ou senha inválidos."))
+                .andExpect(jsonPath("$.caminho").value("/api/auth/login"));
+        mvc.perform(get("/api/admin/eventos"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.codigo").value("NAO_AUTENTICADO"));
+        mvc.perform(get("/api/admin/eventos").header("Authorization", token(ana)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.codigo").value("ACESSO_NEGADO"));
+        mvc.perform(get("/api/admin/pessoas/999999").header("Authorization", token(admin)))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.codigo").value("NAO_ENCONTRADO"));
+        mvc.perform(get("/999999/assinatura-visual"))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.erro").value("Certificado não encontrado."));
+        mvc.perform(get("/api/pessoa/dados-cadastro/convite-secreto-invalido"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.caminho").value("/api/pessoa/dados-cadastro/{token}"));
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.codigo").value("VALIDACAO"))
+                .andExpect(jsonPath("$.erros").isArray());
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("{"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.codigo").value("REQUISICAO_INVALIDA"));
+        mvc.perform(patch("/api/inicio"))
+                .andExpect(status().isMethodNotAllowed()).andExpect(jsonPath("$.codigo").value("METODO_NAO_PERMITIDO"));
+    }
+
     @Test void painelExecutaConsultasDePeriodoComLocalDate() throws Exception {
         Evento e=evento(10,StatusEventoEnum.CRIADO,"11:00","12:00");
         Participacao p=inscrito(e,ana,true);

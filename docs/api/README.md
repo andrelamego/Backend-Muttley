@@ -41,4 +41,18 @@ Uploads de conclusão e de assinatura usam `multipart/form-data`; consulte os no
 
 ## Erros
 
-Erros podem usar `erro`, `erros` ou `message`, conforme a origem. O cliente deve preservar status e mensagens: `400` para entrada inválida, `401` para autenticação, `403` para acesso negado, `404` para recurso/convite indisponível e `409` para conflito de estado. O download de QR usa `503` quando o microsserviço está indisponível.
+Todos os erros HTTP tratados pela API usam o mesmo JSON, inclusive os retornados antes dos controllers pela segurança:
+
+```json
+{
+  "status": 400,
+  "codigo": "VALIDACAO",
+  "erro": "Dados inválidos.",
+  "erros": ["email: Email inválido"],
+  "caminho": "/api/auth/login"
+}
+```
+
+`status` repete o código HTTP; `codigo` é estável para tratamento no cliente; `erro` traz a mensagem legível; `erros` contém problemas por campo na validação e é `[]` nos demais casos; `caminho` usa o padrão da rota quando disponível, para não repetir tokens de convite, e nunca inclui parâmetros de consulta. O cliente deve usar `erro` como mensagem principal e, quando `erros` não estiver vazio, exibir os detalhes dos campos. Respostas bem-sucedidas não mudam.
+
+Os códigos principais são `VALIDACAO` e `REQUISICAO_INVALIDA` (400), `NAO_AUTENTICADO` (401), `ACESSO_NEGADO` (403), `NAO_ENCONTRADO` (404), `METODO_NAO_PERMITIDO` (405), `MIDIA_NAO_SUPORTADA` (415), `CONFLITO` (409), `SERVICO_INDISPONIVEL` (503) e `ERRO_INTERNO` (500). Mensagens de falhas internas e de serviços externos não expõem detalhes técnicos. O [schema OpenAPI](openapi.yaml) descreve a estrutura.

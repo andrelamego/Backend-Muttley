@@ -62,12 +62,15 @@ class PessoaControllerTest {
     }
     @Test void recursoInexistenteRetorna404ComMensagem() throws Exception {
         MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalExceptionHandler()).build()
-                .perform(get("/api/admin/pessoas/99")).andExpect(status().isNotFound()).andExpect(jsonPath("$.erro").value("Pessoa não encontrada."));
+                .perform(get("/api/admin/pessoas/99")).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.codigo").value("NAO_ENCONTRADO"))
+                .andExpect(jsonPath("$.erro").value("Pessoa não encontrada."));
     }
     @Test void dadosObrigatoriosInvalidosRetornam400ComErrosDeCampo() throws Exception {
         MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalExceptionHandler()).build()
                 .perform(post("/api/admin/pessoas").contentType("application/json").content("{}"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.erros").isArray())
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.codigo").value("VALIDACAO"))
+                .andExpect(jsonPath("$.erros").isArray())
                 .andExpect(jsonPath("$.erros",Matchers.hasItems(
                         Matchers.startsWith("nome:"),Matchers.startsWith("email:"),
                         Matchers.startsWith("telefone:"),Matchers.startsWith("cpf:"),
