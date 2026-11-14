@@ -66,6 +66,14 @@ class CertificadoPublicoControllerTest {
         String link=(String)controller.dadosCertificadoPublico("codigo",request).getBody().get("linkedinUrl");
         assertThat(link).startsWith("https://www.linkedin.com/profile/add?").contains("certId=codigo","issueYear=2026","issueMonth=9","/certificados/codigo");
     }
+    @Test void consultaPublicaTrazEventoSemDadosPessoais() throws Exception {
+        when(certificados.procurarPorCodigoValidacao("codigo")).thenReturn(Optional.of(certificado));
+        var corpo=controller.dadosCertificadoPublico("codigo",new MockHttpServletRequest()).getBody().get("certificado");
+        String json=new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().writeValueAsString(corpo);
+        var pessoa=certificado.getParticipacao().getPessoa();
+        assertThat(json).contains("\"tema\":\"Semana de tecnologia\"","\"nome\":\""+pessoa.getNome()+"\"")
+                .doesNotContain("cpf","email","telefone","caminhoAssinaturaVisual");
+    }
     @Test void codigoDesconhecidoRetorna404SemChamarPdf() {
         assertThatThrownBy(() -> controller.preview("desconhecido",new ExtendedModelMap()))
                 .isInstanceOfSatisfying(ResponseStatusException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(404));
