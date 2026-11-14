@@ -17,7 +17,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.thymeleaf.TemplateEngine;
 
 class CertificadoAssinaturaVisualTest {
     @TempDir Path diretorio;
@@ -26,7 +25,7 @@ class CertificadoAssinaturaVisualTest {
     private final CertificadoController admin = new CertificadoController(
             certificados, mock(EventoService.class), mock(AssinaturaStorage.class));
     private final CertificadoPublicoController publico = new CertificadoPublicoController(
-            certificados, mock(PdfClient.class), mock(TemplateEngine.class));
+            certificados, mock(PdfClient.class), mock(CertificadoHtml.class), mock(ModeloCertificadoService.class));
 
     @Test
     void certificadoInexistenteRetorna404NasDuasRotas() {
