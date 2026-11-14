@@ -1,5 +1,6 @@
 package com.fatec.muttley.participacao;
 
+import com.fatec.muttley.evento.enums.StatusEventoEnum;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +55,16 @@ public interface ParticipacaoRepository extends JpaRepository<Participacao, Long
             order by evento.data desc, participacao.id desc
             """)
     List<Participacao> findByPessoaIdComDados(Long pessoaId);
+
+    @Query("""
+            select participacao
+            from Participacao participacao
+            join fetch participacao.pessoa pessoa
+            join fetch participacao.evento evento
+            left join fetch evento.disciplina disciplina
+            where participacao.presente = true and evento.status = :status
+            """)
+    List<Participacao> findPresentesPorStatusDoEvento(StatusEventoEnum status);
 
     boolean existsByEventoIdAndPessoaId(Long eventoId, Long pessoaId);
 

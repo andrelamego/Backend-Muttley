@@ -6,16 +6,18 @@ public record PessoaMeResponse(
         String email,
         String telefone,
         String cpf,
-        Role role
+        Role role,
+        boolean temFoto
 ) {
-    public static PessoaMeResponse from(Pessoa pessoa) {
+    public static PessoaMeResponse from(Pessoa pessoa, boolean temFoto) {
         return new PessoaMeResponse(
                 pessoa.getId(),
                 pessoa.getNome(),
                 pessoa.getEmail(),
                 pessoa.getTelefone(),
                 pessoa.getCpf(),
-                pessoa.getRole()
+                pessoa.getRole(),
+                temFoto
         );
     }
 }

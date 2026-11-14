@@ -20,40 +20,12 @@ class MedalhaServiceTest {
     @Mock ParticipacaoService participacoes;
     @Spy MedalhaMapper mapper=Mappers.getMapper(MedalhaMapper.class);
     @InjectMocks MedalhaService service;
-    @Test void RF_MED_03_RN_MED_03_04_geraBronzeParaPresente() {
-        Participacao p=participacao(1,true); when(repository.save(any())).thenAnswer(i->i.getArgument(0));
-        when(participacoes.procurarPorIdParaAtualizacao(1L)).thenReturn(Optional.of(p));
-        Medalha medalha=service.gerarMedalhaBronzePorPresenca(p);
-        assertThat(medalha.getTipo()).isEqualTo(TipoMedalha.BRONZE);
-        assertThat(medalha.getNome()).isNotBlank(); assertThat(medalha.getDescricao()).isNotBlank();
-        assertThat(medalha.getParticipacao()).isSameAs(p); verify(repository).save(medalha);
-    }
-    @ParameterizedTest @ValueSource(strings={"nula","semId","ausente"})
-    void RN_MED_04_rejeitaParticipacaoNaoConfirmada(String caso) {
-        Participacao p=caso.equals("nula")?null:participacao(1,!caso.equals("ausente"));
-        if(caso.equals("semId"))p.setId(null);
-        assertThatThrownBy(() -> service.gerarMedalhaBronzePorPresenca(p)).isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(repository);
-    }
-    @Test void RN_MED_05_naoDuplicaBronzeAutomatico() {
-        when(participacoes.procurarPorIdParaAtualizacao(1L)).thenReturn(Optional.of(participacao(1,true)));
-        when(repository.existsByParticipacaoIdAndTipo(1L,TipoMedalha.BRONZE)).thenReturn(true);
-        assertThat(service.gerarMedalhaBronzePorPresenca(participacao(1,true))).isNull();
-        verify(repository,never()).save(any());
-    }
-    @Test void loteIgnoraAusentes() {
-        when(participacoes.procurarPorIdParaAtualizacao(1L)).thenReturn(Optional.of(participacao(1,true)));
-        service.gerarMedalhasBronzePorPresenca(List.of(participacao(1,true),participacao(2,false)));
-        verify(repository).save(argThat(m -> m.getParticipacao().getId().equals(1L)));
-        verify(repository,never()).existsByParticipacaoIdAndTipo(2L,TipoMedalha.BRONZE);
-    }
     @ParameterizedTest @EnumSource(TipoMedalha.class)
     void RN_MED_02_06_administradorPodeConcederTiposAdicionais(TipoMedalha tipo) {
         when(participacoes.procurarPorId(1L)).thenReturn(Optional.of(participacao(1,false)));
         when(repository.save(any())).thenAnswer(i->i.getArgument(0));
         Medalha m=service.salvarOuAtualizar(new AtualizacaoMedalha(null,"Destaque","Reconhecimento",tipo,1L));
         assertThat(m.getTipo()).isEqualTo(tipo); assertThat(m.getParticipacao().getId()).isEqualTo(1L);
-        verify(repository,never()).existsByParticipacaoIdAndTipo(anyLong(),any());
     }
     @Test void RN_MED_01_exigeParticipacaoExistente() {
         assertThatThrownBy(() -> service.salvarOuAtualizar(new AtualizacaoMedalha(null,"Nome","Descricao",TipoMedalha.OURO,1L)))

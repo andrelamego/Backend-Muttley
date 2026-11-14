@@ -25,14 +25,15 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CertificadoPublicoControllerTest {
-    @Mock CertificadoService certificados; @Mock PdfClient pdf;
+    @Mock CertificadoService certificados; @Mock PdfClient pdf; @Mock ModeloCertificadoService modelos;
     CertificadoPublicoController controller;
     @TempDir Path diretorio;
     Certificado certificado;
     @BeforeEach void setup() {
         var resolver=new ClassLoaderTemplateResolver(); resolver.setPrefix("templates/"); resolver.setSuffix(".html"); resolver.setCharacterEncoding("UTF-8");
         var engine=new SpringTemplateEngine(); engine.setTemplateResolver(resolver);
-        controller = new CertificadoPublicoController(certificados,pdf,engine);
+        controller = new CertificadoPublicoController(certificados,pdf,new CertificadoHtml(engine),modelos);
+        lenient().when(modelos.atual()).thenReturn(ModeloCertificado.padrao());
         certificado=new Certificado(); certificado.setCodigoValidacao("codigo"); certificado.setParticipacao(participacao(1,true));
         certificado.setDataEmissao(LocalDate.of(2026,9,3));
     }
@@ -49,7 +50,7 @@ class CertificadoPublicoControllerTest {
         assertThat(response.getHeaders().getContentLength()).isEqualTo(4);
         assertThat(response.getBody()).containsExactly((byte)37,(byte)80,(byte)68,(byte)70);
         ArgumentCaptor<String> html=ArgumentCaptor.forClass(String.class);verify(pdf).gerarPdf(html.capture());
-        assertThat(html.getValue()).contains("data:image/png;base64,AQID","Semana de tecnologia","2h30.","03/09/2026")
+        assertThat(html.getValue()).contains("data:image/png;base64,AQID","Semana de tecnologia","<strong>2h30</strong>","03/09/2026")
                 .contains("&lt;script&gt;").doesNotContain("<script>alert(1)</script>");
     }
     @ParameterizedTest @CsvSource({"09:00,10:00,1 hora.","09:00,11:00,2 horas.","09:00,09:45,0h45.","09:00,11:30,2h30.","10:00,09:00,carga horária não informada.","errado,09:00,carga horária não informada."})
@@ -65,6 +66,14 @@ class CertificadoPublicoControllerTest {
         var request=new MockHttpServletRequest();request.setScheme("https");request.setServerName("muttley.example.invalid");request.setServerPort(443);request.setRequestURI("/api/certificados/codigo");
         String link=(String)controller.dadosCertificadoPublico("codigo",request).getBody().get("linkedinUrl");
         assertThat(link).startsWith("https://www.linkedin.com/profile/add?").contains("certId=codigo","issueYear=2026","issueMonth=9","/certificados/codigo");
+    }
+    @Test void consultaPublicaTrazEventoSemDadosPessoais() throws Exception {
+        when(certificados.procurarPorCodigoValidacao("codigo")).thenReturn(Optional.of(certificado));
+        var corpo=controller.dadosCertificadoPublico("codigo",new MockHttpServletRequest()).getBody().get("certificado");
+        String json=new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules().writeValueAsString(corpo);
+        var pessoa=certificado.getParticipacao().getPessoa();
+        assertThat(json).contains("\"tema\":\"Semana de tecnologia\"","\"nome\":\""+pessoa.getNome()+"\"")
+                .doesNotContain("cpf","email","telefone","caminhoAssinaturaVisual");
     }
     @Test void codigoDesconhecidoRetorna404SemChamarPdf() {
         assertThatThrownBy(() -> controller.preview("desconhecido",new ExtendedModelMap()))

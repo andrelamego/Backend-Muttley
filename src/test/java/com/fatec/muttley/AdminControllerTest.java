@@ -2,7 +2,7 @@ package com.fatec.muttley;
 
 import com.fatec.muttley.evento.EventoService;
 import com.fatec.muttley.certificado.*;
-import com.fatec.muttley.medalha.MedalhaService;
+import com.fatec.muttley.conquista.ConquistaService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,7 +16,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AdminControllerTest {
-    @Mock EventoService eventos; @Mock CertificadoService certificados; @Mock MedalhaService medalhas;
+    @Mock EventoService eventos; @Mock CertificadoService certificados; @Mock ConquistaService conquistas;
     @InjectMocks AdminController controller;
     @ParameterizedTest @CsvSource({"0,0,0","5,0,100","15,10,50","5,10,-50","0,10,-100","10,10,0","4,3,33"})
     void dashboardCalculaVariacaoEPeriodos(long atual,long anterior,long esperado) {
@@ -41,6 +41,6 @@ class AdminControllerTest {
         var body=controller.carregarEstatisticasAdmin().getBody();
         assertThat(body.get("certificadosPorEvento")).isEqualTo(List.of(
                 new AdminController.BarraEstatistica("Maior",100L,100),new AdminController.BarraEstatistica("Menor",1L,6)));
-        verify(medalhas).procurarTotaisPorParticipante(7);
+        verify(conquistas).destaquesDoSemestre(5);
     }
 }

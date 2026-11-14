@@ -1,0 +1,35 @@
+%% Linhas contínuas: chamadas síncronas/acesso a armazenamento.
+%% Linhas tracejadas: publicação/consumo assíncrono de mensagens.
+flowchart LR
+    WEB["FRONTEND WEB<br/>React / TypeScript"]
+    API["API MUTTLEY<br/>Spring Boot / Java<br/>Regras de negócio e autorização"]
+    DB[("BANCO RELACIONAL<br/>MariaDB / MySQL<br/>Schema versionado com Flyway")]
+    ARQUIVOS[("ARQUIVOS DE ASSINATURA<br/>Volume persistente da API")]
+    PDF["SERVIÇO PDF<br/>HTML → PDF<br/>Playwright / Chromium"]
+    QR["SERVIÇO QR CODE<br/>Geração de PNG / URL"]
+    EMAIL["SERVIÇO DE E-MAIL<br/>Consome notificações"]
+    SMTP["SMTP<br/>Mailpit no ambiente local<br/>Provedor configurado para entrega real"]
+
+    subgraph KAFKA["APACHE KAFKA — tópicos"]
+        REQ["qrcode.gerar.request"]
+        RES["qrcode.gerar.response"]
+        NOTIFICACOES["email.inscricao.confirmada<br/>email.completar.cadastro<br/>email.evento.cancelado<br/>email.evento.concluido<br/>email.certificado"]
+    end
+
+    WEB <-->|"HTTP / JSON · JWT nas rotas protegidas"| API
+    API <-->|"JPA / JDBC"| DB
+    API <-->|"Leitura e gravação"| ARQUIVOS
+    API <-->|"HTTP · HTML / PDF"| PDF
+    API <-->|"HTTP · solicitação / PNG"| QR
+    API -.->|"Publica após commit"| REQ
+    REQ -.->|"Consome pedido"| QR
+    QR -.->|"Publica resultado"| RES
+    RES -.->|"Consome e atualiza URL do evento"| API
+    API -.->|"Publica notificações após commit"| NOTIFICACOES
+    NOTIFICACOES -.->|"Consome"| EMAIL
+    EMAIL -->|"Envio SMTP"| SMTP
+
+    classDef principal fill:#dfeaf2,stroke:#345775,stroke-width:2px;
+    classDef topico fill:#fff5df,stroke:#8c6e37;
+    class API principal;
+    class REQ,RES,NOTIFICACOES topico;

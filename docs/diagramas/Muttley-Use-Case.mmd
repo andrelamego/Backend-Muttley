@@ -1,0 +1,43 @@
+%% Visão funcional atual. Mermaid 11: casos de uso representados por flowchart.
+%% Perfis de domínio (aluno, professor etc.) não são roles de autorização.
+flowchart LR
+    PUBLICO["Pessoa<br/>acesso público"]
+    CONTA["Usuário autenticado<br/>USER ou ADMIN"]
+    ADMIN["Administrador<br/>ADMIN"]
+
+    subgraph SISTEMA["Muttley — casos de uso"]
+        direction TB
+        subgraph PUBLICAS["Ações públicas"]
+            EVENTOS(["Consultar eventos e detalhes"])
+            INSCRICAO(["Inscrever-se em evento"])
+            PRESENCA(["Confirmar presença"])
+            VALIDACAO(["Consultar, visualizar e baixar<br/>certificado público"])
+            CADASTRO(["Solicitar e concluir<br/>cadastro por convite"])
+            LOGIN(["Entrar com e-mail e senha"])
+        end
+        subgraph PESSOAIS["Área pessoal"]
+            DADOS(["Consultar dados pessoais"])
+            PARTICIPACOES(["Consultar e administrar<br/>participações próprias"])
+            CONQUISTAS(["Consultar certificados<br/>e medalhas próprios"])
+        end
+        subgraph GESTAO["Administração"]
+            MANTER_EVENTO(["Criar, consultar e atualizar eventos"])
+            CANCELAR(["Cancelar evento"])
+            CONCLUIR(["Concluir evento e consolidar presenças"])
+            GERIR_PART(["Administrar participações"])
+            PESSOAS(["Gerenciar pessoas e perfis"])
+            AUXILIARES(["Gerenciar disciplinas, locais,<br/>endereços e patrocinadores"])
+            QR(["Gerar e baixar QR Codes"])
+            CERTIFICADOS(["Emitir e administrar certificados"])
+            MEDALHAS(["Conceder e administrar medalhas"])
+            PAINEL(["Consultar estatísticas"])
+        end
+    end
+
+    PUBLICO --- EVENTOS & INSCRICAO & PRESENCA & VALIDACAO & CADASTRO & LOGIN
+    CONTA --- DADOS & PARTICIPACOES & CONQUISTAS
+    ADMIN --- MANTER_EVENTO & CANCELAR & CONCLUIR & GERIR_PART & PESSOAS
+    ADMIN --- AUXILIARES & QR & CERTIFICADOS & MEDALHAS & PAINEL
+
+    classDef ator fill:#ffffff,stroke:#17212b,stroke-width:2px;
+    class PUBLICO,CONTA,ADMIN ator;

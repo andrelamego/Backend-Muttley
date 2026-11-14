@@ -18,7 +18,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.Map;
@@ -35,10 +34,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 @Tag(name = "Certificados Públicos", description = "Validação, consulta pública, visualização e download de certificados emitidos")
 @Controller
@@ -50,7 +48,9 @@ public class CertificadoPublicoController {
 
     private final PdfClient pdfClient;
 
-    private final TemplateEngine templateEngine;
+    private final CertificadoHtml certificadoHtml;
+
+    private final ModeloCertificadoService modeloCertificadoService;
 
     @Operation(summary = "Consultar dados públicos do certificado",
             description = "Retorna os detalhes do certificado pelo código de validação, incluindo o link pronto para adição ao perfil do LinkedIn.")
@@ -65,7 +65,7 @@ public class CertificadoPublicoController {
             HttpServletRequest request) {
         Certificado certificado = buscarCertificado(codigo);
         return ResponseEntity.ok(Map.of(
-                "certificado", certificado,
+                "certificado", CertificadoPublicoResponse.de(certificado),
                 "linkedinUrl", montarUrlLinkedIn(certificado, request)
         ));
     }
@@ -132,9 +132,7 @@ public class CertificadoPublicoController {
     }
 
     private ResponseEntity<byte[]> gerarPdf(Model model, String disposition) throws IOException {
-        Context context = new Context();
-        context.setVariables(model.asMap());
-        String htmlProcessado = templateEngine.process("public/certificados/modeloPdf", context);
+        String htmlProcessado = certificadoHtml.renderizar(model.asMap());
 
         byte[] pdfBytes = pdfClient.gerarPdf(htmlProcessado);
 
@@ -170,30 +168,38 @@ public class CertificadoPublicoController {
             }
         }
 
-        return Map.of(
-                "certificado", certificado,
-                "assinaturaBase64", assinaturaBase64,
-                "assinaturaMime", assinaturaMime,
-                "pessoa", participacao != null && participacao.getTipo() != null ? participacao.getTipo() : "participante",
-                "nome", pessoa != null ? pessoa.getNome() : "Participante",
-                "preambulo", "Por participar do evento ",
-                "evento", evento != null ? evento.getTema() : "Evento",
-                "predicado", montarPredicado(evento),
-                "duracao", calcularDuracao(evento),
-                "data", formatarDataEmissao(certificado.getDataEmissao())
-        );
+        String duracao = calcularDuracao(evento);
+        String tema = evento != null && evento.getTema() != null ? evento.getTema() : "Evento";
+        var dados = new CertificadoHtml.Dados(
+                pessoa != null ? pessoa.getNome() : "Participante",
+                participacao != null ? participacao.getTipo() : null,
+                tema,
+                evento != null ? evento.getData() : null,
+                duracao.endsWith(".") ? duracao.substring(0, duracao.length() - 1) : duracao,
+                certificado.getDataEmissao(),
+                certificado.getCodigoValidacao(),
+                urlDeValidacao(certificado.getCodigoValidacao()),
+                assinaturaBase64,
+                assinaturaMime);
+
+        Map<String, Object> variaveis = certificadoHtml.variaveis(modeloCertificadoService.atual(), dados);
+        variaveis.put("certificado", certificado);
+        variaveis.put("duracao", duracao);
+        return variaveis;
+    }
+
+    /** Endereço público de validação; fora de uma requisição (testes, tarefas) não há como montá-lo. */
+    private String urlDeValidacao(String codigo) {
+        if (codigo == null || RequestContextHolder.getRequestAttributes() == null) return null;
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .replacePath("/certificados/" + codigo)
+                .replaceQuery(null)
+                .build()
+                .toUriString();
     }
 
     private void preencherModelo(Certificado certificado, Model model) {
         preencherModelo(certificado).forEach(model::addAttribute);
-    }
-
-    private String montarPredicado(Evento evento) {
-        if (evento == null || evento.getData() == null) {
-            return "promovido pela FATEC Zona Leste.";
-        }
-        return "realizado no dia " + evento.getData().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                + ", promovido pela FATEC Zona Leste.";
     }
 
     private String calcularDuracao(Evento evento) {
@@ -218,13 +224,6 @@ public class CertificadoPublicoController {
         } catch (DateTimeParseException exception) {
             return "carga horária não informada.";
         }
-    }
-
-    private String formatarDataEmissao(LocalDate dataEmissao) {
-        if (dataEmissao == null) {
-            return "São Paulo";
-        }
-        return "São Paulo, " + dataEmissao.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
 
     @Operation(summary = "Exibir imagem da assinatura pública",

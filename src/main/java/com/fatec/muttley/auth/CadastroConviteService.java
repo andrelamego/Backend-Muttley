@@ -40,13 +40,25 @@ public class CadastroConviteService {
                 && Instant.now(clock).isBefore(pessoa.getCadastroTokenExpiraEm())) {
             return Optional.empty();
         }
+        return Optional.of(gerarNovoConvite(pessoa));
+    }
+
+    @Transactional
+    public String renovarParaInscricao(Pessoa pessoa) {
+        if (pessoa.getSenha() != null && !pessoa.getSenha().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cadastro já concluído.");
+        }
+        return gerarNovoConvite(pessoa);
+    }
+
+    private String gerarNovoConvite(Pessoa pessoa) {
         byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         pessoa.setCadastroTokenHash(hash(token));
         pessoa.setCadastroTokenExpiraEm(Instant.now(clock).plus(VALIDADE));
         pessoas.save(pessoa);
-        return Optional.of(token);
+        return token;
     }
 
     @Transactional(readOnly = true)

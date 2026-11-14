@@ -1,48 +1,161 @@
 <!DOCTYPE html>
 <html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragmentos/headModeloPdf :: head('Certificado')}"></head>
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${modelo.titulo}">Certificado</title>
+    <!-- Tudo embutido: o serviço de PDF não acessa CSS nem fontes externas. -->
+    <style th:inline="css">
+        @font-face {
+            font-family: 'Titulo';
+            src: url(data:font/woff2;base64,[(${fonteTitulo})]) format('woff2');
+            font-weight: 200 800;
+        }
+        @font-face {
+            font-family: 'Texto';
+            src: url(data:font/woff2;base64,[(${fonteTexto})]) format('woff2');
+            font-weight: 400 900;
+        }
+        @page { size: A4 landscape; margin: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 297mm; height: 210mm; }
+        body {
+            font-family: 'Texto', Arial, sans-serif;
+            color: #0e1330;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .folha { width: 297mm; height: 210mm; position: relative; overflow: hidden; background: #ffffff; }
+
+        .logo { max-height: 16mm; max-width: 52mm; object-fit: contain; display: block; }
+        .instituicao { font-size: 10.5pt; font-weight: 600; color: #4a5070; letter-spacing: 0.02em; }
+        .titulo {
+            font-family: 'Titulo', Arial, sans-serif; font-weight: 700; font-size: 12pt;
+            text-transform: uppercase; letter-spacing: 0.16em; color: [(${corPrincipal})];
+        }
+        .conferido { font-size: 10pt; color: #5d6385; }
+        .nome { font-family: 'Titulo', Arial, sans-serif; font-weight: 800; font-size: 40pt; line-height: 1.04; letter-spacing: -0.01em; }
+        .faixa { width: 22mm; height: 2.4mm; border-radius: 1.2mm; background: [(${corDestaque})]; }
+        .texto { font-size: 13pt; line-height: 1.55; color: #2a2f4f; }
+        .texto strong { font-weight: 650; color: #0e1330; }
+        .assinatura img { max-height: 18mm; max-width: 72mm; object-fit: contain; display: block; }
+        .linha { border-top: 0.35mm solid #0e1330; padding-top: 2mm; font-size: 9.5pt; line-height: 1.35; color: #4a5070; }
+        .miudo { font-size: 8.5pt; color: #5d6385; }
+
+        /* Leiaute Ingresso: corpo à esquerda e canhoto destacável com a data e o código */
+        .ingresso { display: flex; }
+        .ingresso .corpo { flex: 1; padding: 18mm 18mm 15mm 22mm; display: flex; flex-direction: column; }
+        .ingresso .topo { display: flex; align-items: center; gap: 5mm; min-height: 16mm; }
+        .ingresso .titulo { margin-top: 16mm; }
+        .ingresso .conferido { margin-top: 7mm; }
+        .ingresso .nome { margin-top: 1.5mm; max-width: 175mm; }
+        .ingresso .faixa { margin: 7mm 0 6mm; }
+        .ingresso .texto { max-width: 170mm; }
+        .ingresso .rodape { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 10mm; }
+        .ingresso .assinatura { width: 95mm; }
+        .canhoto {
+            width: 72mm; position: relative; padding: 18mm 11mm 15mm 13mm;
+            display: flex; flex-direction: column;
+            background: [(${corPrincipal})]; color: [(${textoSobrePrincipal})];
+        }
+        /* Picote: linha tracejada e os dois recortes semicirculares da borda */
+        .canhoto::before {
+            content: ''; position: absolute; left: 0; top: 9mm; bottom: 9mm;
+            border-left: 0.6mm dashed currentColor; opacity: 0.45;
+        }
+        .furo { position: absolute; left: -6mm; width: 12mm; height: 12mm; border-radius: 50%; background: #ffffff; }
+        .furo.cima { top: -6mm; }
+        .furo.baixo { bottom: -6mm; }
+        .canhoto .rotulo { font-size: 8pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.8; }
+        .canhoto .dia { font-family: 'Titulo', Arial, sans-serif; font-weight: 800; font-size: 66pt; line-height: 0.95; margin-top: 3mm; }
+        .canhoto .mes { font-family: 'Titulo', Arial, sans-serif; font-weight: 700; font-size: 17pt; letter-spacing: 0.04em; }
+        .selo {
+            align-self: flex-start; margin-top: 7mm; padding: 1.4mm 3.5mm; border-radius: 20mm;
+            font-size: 8.5pt; font-weight: 700; letter-spacing: 0.04em;
+            background: [(${corDestaque})]; color: [(${textoSobreDestaque})];
+        }
+        .canhoto .validacao { margin-top: auto; }
+        .canhoto .codigo { font-size: 8.5pt; font-weight: 600; line-height: 1.4; word-break: break-all; margin-top: 1.5mm; }
+        .canhoto .url { font-size: 7.5pt; line-height: 1.4; overflow-wrap: anywhere; opacity: 0.85; margin-top: 3mm; }
+
+        /* Leiaute Clássico: moldura dupla e composição centralizada */
+        .classico { padding: 11mm; }
+        .moldura { height: 100%; border: 1.3mm solid [(${corPrincipal})]; padding: 3mm; }
+        .moldura-interna {
+            height: 100%; border: 0.45mm solid [(${corDestaque})];
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            padding: 12mm 26mm 9mm;
+        }
+        .classico .logo { margin-bottom: 3mm; }
+        .classico .titulo { margin-top: 9mm; font-size: 26pt; letter-spacing: 0.08em; }
+        .classico .conferido { margin-top: 8mm; }
+        .classico .nome { margin-top: 2mm; font-size: 36pt; }
+        .classico .faixa { margin: 6mm auto; }
+        .classico .texto { max-width: 205mm; }
+        .classico .assinatura { margin-top: auto; width: 100mm; }
+        .classico .assinatura img { margin: 0 auto; }
+        .classico .miudo { margin-top: 4mm; }
+    </style>
+</head>
 <body>
-<div class="certificado">
-    <section class="section-titulo">
-        <div class="text-titulo">
-            <p>C E R T I F I C A D O</p>
+
+<div class="folha ingresso" th:if="${modelo.leiaute.name() == 'INGRESSO'}">
+    <main class="corpo">
+        <div class="topo">
+            <img class="logo" th:if="${logoSrc != null}" th:src="${logoSrc}" alt="">
+            <span class="instituicao" th:text="${modelo.instituicao}">Fatec Zona Leste</span>
         </div>
-    </section>
-    <section class="section-conteudo">
-        <div class="text-destinatario">
-            <p>Este certificado é concedido ao <span th:text="${pessoa}">Professor</span></p>
+        <p class="titulo" th:text="${modelo.titulo}">Certificado de participação</p>
+        <p class="conferido">Conferido a</p>
+        <h1 class="nome" th:text="${nome}">Ana Souza</h1>
+        <div class="faixa"></div>
+        <p class="texto" th:utext="${corpo}">Participou do evento...</p>
+        <div class="rodape">
+            <div class="assinatura">
+                <img th:if="${assinaturaBase64 != ''}"
+                     th:src="'data:' + ${assinaturaMime} + ';base64,' + ${assinaturaBase64}" alt="Assinatura">
+                <p class="linha" th:text="${modelo.cargoAssinatura}">Coordenação</p>
+            </div>
+            <p class="miudo" th:text="'Emitido em ' + ${dataEmissao}">Emitido em 12/11/2026</p>
         </div>
-        <div class="text-nome-destinatario">
-            <p th:text="${nome}">Gabriel</p>
+    </main>
+    <aside class="canhoto">
+        <span class="furo cima"></span>
+        <span class="furo baixo"></span>
+        <p class="rotulo">Realizado em</p>
+        <p class="dia" th:text="${dia}">12</p>
+        <p class="mes" th:text="${mes} + ' ' + ${ano}">NOV 2026</p>
+        <span class="selo">Certificado verificável</span>
+        <div class="validacao">
+            <p class="rotulo">Código de validação</p>
+            <p class="codigo" th:text="${codigo}">8f166ceb-d791-3838-b0bc-faedc6c8b90c</p>
+            <p class="url" th:if="${url != null}" th:text="'Confira em ' + ${url}">Confira em muttley</p>
         </div>
-        <div class="text-descricao">
-            <p>
-                <span th:text="${preambulo}">Por ministrar a palestra </span><b><span th:text="${evento}">Inteligência Cibernética em Tempos de Guerra Híbrida</span></b>
-                <span th:text="${predicado}">realizada no dia 30 de março de 2026, promovida pelo Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas.</span>
+    </aside>
+</div>
+
+<div class="folha classico" th:unless="${modelo.leiaute.name() == 'INGRESSO'}">
+    <div class="moldura">
+        <div class="moldura-interna">
+            <img class="logo" th:if="${logoSrc != null}" th:src="${logoSrc}" alt="">
+            <span class="instituicao" th:text="${modelo.instituicao}">Fatec Zona Leste</span>
+            <p class="titulo" th:text="${modelo.titulo}">Certificado de participação</p>
+            <p class="conferido">Conferido a</p>
+            <h1 class="nome" th:text="${nome}">Ana Souza</h1>
+            <div class="faixa"></div>
+            <p class="texto" th:utext="${corpo}">Participou do evento...</p>
+            <div class="assinatura">
+                <img th:if="${assinaturaBase64 != ''}"
+                     th:src="'data:' + ${assinaturaMime} + ';base64,' + ${assinaturaBase64}" alt="Assinatura">
+                <p class="linha" th:text="${modelo.cargoAssinatura}">Coordenação</p>
+            </div>
+            <p class="miudo">
+                <span th:text="'Emitido em ' + ${dataEmissao}">Emitido em 12/11/2026</span>
+                · Código <span th:text="${codigo}">8f166ceb</span>
+                <span th:if="${url != null}" th:text="'· Confira em ' + ${url}">· Confira em muttley</span>
             </p>
         </div>
-        <div class="text-descricao">
-            <p>O evento foi realizado com carga horária de <span th:text="${duracao}">2 (duas) horas.</span></p>
-        </div>
-        <div class="text-data">
-            <p th:text="${data}">São Paulo, 30 de março de 2026</p>
-        </div>
-    </section>
-
-    <section class="section-assinatura" style="text-align: center;">
-        <div style="height: 70px; margin-bottom: -15px;">
-            <img th:if="${assinaturaBase64 != null and assinaturaBase64 != ''}"
-                 th:src="'data:' + ${assinaturaMime} + ';base64,' + ${assinaturaBase64}"
-                 style="max-height: 70px; width: auto; display: block; margin: 0 auto;"
-                 alt="Assinatura Digital" />
-        </div>
-        <div>
-            <hr class="linha-assinatura">
-        </div>
-        <div class="text-assinatura">
-            <p>Coordenador do curso de Análise e Desenvolvimento de Sistemas da FATEC Zona Leste</p>
-        </div>
-    </section>
+    </div>
 </div>
+
 </body>
 </html>

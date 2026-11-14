@@ -40,9 +40,9 @@ public class CertificadoController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> listarDados() {
         return ResponseEntity.ok(Map.of(
-                "certificados", certificadoService.procurarTodos(),
+                "certificados", certificadoService.procurarTodos().stream().map(CertificadoAdminResponse::de).toList(),
                 "eventosAguardandoCertificado", eventoService.procurarEventosAguardandoEmissaoCertificado(),
-                "ultimosCertificados", certificadoService.procurarUltimosEmitidos()
+                "ultimosCertificados", certificadoService.procurarUltimosEmitidos().stream().map(CertificadoAdminResponse::de).toList()
         ));
     }
 

@@ -21,10 +21,14 @@ public record AtualizacaoPessoa(
         @ValidCpf(formatted = true)
         String cpf,
 
-        @NotBlank(message = "Senha e obrigatoria")
+        // Obrigatória só ao criar; na edição, em branco mantém a senha atual.
+        @NotBlank(message = "Senha e obrigatoria", groups = AtualizacaoPessoa.Criacao.class)
         @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
         String senha
 ) {
+        /** Grupo de validação usado apenas no cadastro de uma nova pessoa. */
+        public interface Criacao {}
+
         public AtualizacaoPessoa withId(Long id) {
                 return new AtualizacaoPessoa(id, this.nome(), this.email(), this.telefone(), this.cpf(), this.senha());
         }

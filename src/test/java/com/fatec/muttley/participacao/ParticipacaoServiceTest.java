@@ -144,4 +144,21 @@ class ParticipacaoServiceTest {
         assertThat(salva.getId()).isEqualTo(7L);assertThat(salva.isPresente()).isTrue();assertThat(salva.getTipo()).isEqualTo("Palestrante");
         assertThat(salva.getInscricao()).isEqualTo(42);assertThat(salva.getPessoa()).isSameAs(p);assertThat(salva.getEvento()).isSameAs(e);
     }
+    @Test void cancelamentoPermitidoAntesDoInicioESemPresenca() {
+        Participacao p=participacao(1,false); p.setEvento(evento(CRIADO));
+        assertThatCode(() -> service.validarCancelamento(p)).doesNotThrowAnyException();
+    }
+    @Test void cancelamentoRecusadoComPresencaConfirmada() {
+        Participacao p=participacao(1,true); p.setEvento(evento(CRIADO));
+        assertThatThrownBy(() -> service.validarCancelamento(p)).isInstanceOf(IllegalStateException.class).hasMessageContaining("presença");
+    }
+    @ParameterizedTest @EnumSource(value=StatusEventoEnum.class, names={"EM_ANDAMENTO","FINALIZADO","CANCELADO"})
+    void cancelamentoRecusadoForaDoEstadoCriado(StatusEventoEnum status) {
+        Participacao p=participacao(1,false); p.setEvento(evento(status));
+        assertThatThrownBy(() -> service.validarCancelamento(p)).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void cancelamentoRecusadoDepoisDoHorarioDeInicio() {
+        Participacao p=participacao(1,false); Evento e=evento(CRIADO); e.setData(LocalDate.now().minusDays(1)); p.setEvento(e);
+        assertThatThrownBy(() -> service.validarCancelamento(p)).isInstanceOf(IllegalStateException.class).hasMessageContaining("começou");
+    }
 }

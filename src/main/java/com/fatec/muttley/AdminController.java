@@ -3,8 +3,7 @@ package com.fatec.muttley;
 import com.fatec.muttley.certificado.CertificadoRepository;
 import com.fatec.muttley.certificado.CertificadoService;
 import com.fatec.muttley.evento.EventoService;
-import com.fatec.muttley.medalha.MedalhaRepository;
-import com.fatec.muttley.medalha.MedalhaService;
+import com.fatec.muttley.conquista.ConquistaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -32,10 +31,10 @@ public class AdminController {
 
     private final CertificadoService certificadoService;
 
-    private final MedalhaService medalhaService;
+    private final ConquistaService conquistaService;
 
     @Operation(summary = "Carregar dados e estatísticas do painel administrativo",
-            description = "Retorna os próximos eventos, gráficos de certificados emitidos, medalhas por participante e métricas dos últimos 30 dias.")
+            description = "Retorna os próximos eventos, gráficos de certificados emitidos, destaques do semestre e métricas dos últimos 30 dias.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Estatísticas recuperadas com sucesso"),
             @ApiResponse(responseCode = "401", description = "Não autenticado"),
@@ -54,13 +53,6 @@ public class AdminController {
                 .max()
                 .orElse(0);
 
-        List<MedalhaRepository.MedalhasPorParticipante> medalhasPorParticipante =
-                medalhaService.procurarTotaisPorParticipante(7);
-        long maiorTotalMedalhas = medalhasPorParticipante.stream()
-                .mapToLong(MedalhaRepository.MedalhasPorParticipante::getTotal)
-                .max()
-                .orElse(0);
-
         LocalDate hoje = LocalDate.now();
         LocalDate inicioUltimos30Dias = hoje.minusDays(30);
         LocalDate inicioPeriodoAnterior = inicioUltimos30Dias.minusDays(30);
@@ -71,9 +63,7 @@ public class AdminController {
                 .map(item -> new BarraEstatistica(item.getEventoTema(), item.getTotal(), percentual(item.getTotal(), maiorTotalCertificadosPorEvento)))
                 .toList());
 
-        response.put("medalhasPorParticipante", medalhasPorParticipante.stream()
-                .map(item -> new BarraEstatistica(item.getParticipanteNome(), item.getTotal(), percentual(item.getTotal(), maiorTotalMedalhas)))
-                .toList());
+        response.put("destaquesSemestre", conquistaService.destaquesDoSemestre(5));
 
         response.put("certificadosUltimos30Dias", certificadosUltimos30Dias);
         response.put("variacaoCertificadosUltimos30Dias", calcularVariacaoPercentual(certificadosUltimos30Dias, certificadosPeriodoAnterior));

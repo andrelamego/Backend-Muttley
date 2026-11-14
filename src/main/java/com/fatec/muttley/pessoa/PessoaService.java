@@ -40,6 +40,21 @@ public class PessoaService {
         return pessoaRepository.save(novaPessoa);
     }
 
+    public Pessoa atualizarPerfil(Pessoa pessoa, AtualizacaoPerfil dados) {
+        pessoa.setNome(dados.nome().trim());
+        pessoa.setTelefone(dados.telefone().trim());
+        return pessoaRepository.save(pessoa);
+    }
+
+    /** Troca a senha só com a senha atual correta, para uma sessão esquecida aberta não bastar. */
+    public void alterarSenha(Pessoa pessoa, AlteracaoSenha dados) {
+        if (!passwordEncoder.matches(dados.senhaAtual(), pessoa.getSenha())) {
+            throw new IllegalArgumentException("A senha atual está incorreta.");
+        }
+        pessoa.setSenha(passwordEncoder.encode(dados.novaSenha()));
+        pessoaRepository.save(pessoa);
+    }
+
     public Pessoa salvar(Pessoa pessoa) {
         return pessoaRepository.save(pessoa);
     }

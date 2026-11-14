@@ -1,0 +1,12 @@
+{
+  "name": "muttley-diagramas",
+  "private": true,
+  "description": "Fontes Mermaid e exportação dos diagramas do Muttley",
+  "scripts": {
+    "render": "node renderizar.mjs",
+    "render:documento": "node renderizar.mjs documento/visao-arquitetural-simplificada"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "11.12.0"
+  }
+}
