@@ -8,12 +8,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -41,6 +44,32 @@ public class MeController {
     public ResponseEntity<PessoaMeResponse> buscarUsuarioAutenticado(JwtAuthenticationToken authentication) {
         Pessoa pessoa = pessoaAutenticada(authentication);
         return ResponseEntity.ok(PessoaMeResponse.from(pessoa));
+    }
+
+    @Operation(summary = "Atualizar dados do usuário autenticado", description = "Altera nome e telefone da própria conta; email e CPF não mudam por aqui.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dados atualizados"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado ou token inválido")
+    })
+    @PutMapping("/api/me")
+    public ResponseEntity<PessoaMeResponse> atualizarUsuarioAutenticado(
+            JwtAuthenticationToken authentication, @RequestBody @Valid AtualizacaoPerfil dados) {
+        Pessoa pessoa = pessoaService.atualizarPerfil(pessoaAutenticada(authentication), dados);
+        return ResponseEntity.ok(PessoaMeResponse.from(pessoa));
+    }
+
+    @Operation(summary = "Alterar a senha do usuário autenticado", description = "Exige a senha atual.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Senha alterada"),
+            @ApiResponse(responseCode = "400", description = "Senha atual incorreta ou dados inválidos"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado ou token inválido")
+    })
+    @PutMapping("/api/me/senha")
+    public ResponseEntity<Void> alterarSenha(
+            JwtAuthenticationToken authentication, @RequestBody @Valid AlteracaoSenha dados) {
+        pessoaService.alterarSenha(pessoaAutenticada(authentication), dados);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Listar certificados do usuário autenticado", description = "Retorna todos os certificados emitidos para o usuário logado.")

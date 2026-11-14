@@ -56,4 +56,18 @@ class PessoaServiceTest {
         Pessoa p=pessoa(1); p.setSenha("hash-confidencial");
         assertThat(new ObjectMapper().readTree(new ObjectMapper().writeValueAsString(p)).has("senha")).isFalse();
     }
+    @Test void perfilAlteraSoNomeETelefone() {
+        Pessoa p=pessoa(1); String email=p.getEmail(), cpf=p.getCpf(); when(repository.save(p)).thenReturn(p);
+        service.atualizarPerfil(p,new AtualizacaoPerfil(" Nome novo ","(11) 91234-5678"));
+        assertThat(p.getNome()).isEqualTo("Nome novo"); assertThat(p.getTelefone()).isEqualTo("(11) 91234-5678");
+        assertThat(p.getEmail()).isEqualTo(email); assertThat(p.getCpf()).isEqualTo(cpf);
+    }
+    @Test void trocaDeSenhaExigeASenhaAtual() {
+        Pessoa p=pessoa(1); p.setSenha(encoder.encode("atual-123"));
+        assertThatThrownBy(() -> service.alterarSenha(p,new AlteracaoSenha("errada","nova-456")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("incorreta");
+        verify(repository,never()).save(any());
+        service.alterarSenha(p,new AlteracaoSenha("atual-123","nova-456"));
+        assertThat(encoder.matches("nova-456",p.getSenha())).isTrue();
+    }
 }
