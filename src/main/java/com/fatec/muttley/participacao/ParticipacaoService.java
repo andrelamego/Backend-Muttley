@@ -111,6 +111,17 @@ public class ParticipacaoService {
         participacaoRepository.deleteById(id);
     }
 
+    /** Desistir só faz sentido antes de o evento começar e enquanto não há presença registrada. */
+    public void validarCancelamento(Participacao participacao) {
+        if (participacao.isPresente()) {
+            throw new IllegalStateException("A presença já foi confirmada; a inscrição não pode mais ser cancelada.");
+        }
+        Evento evento = participacao.getEvento();
+        if (evento.getStatus() != StatusEventoEnum.CRIADO || HorariosEvento.jaIniciou(evento, clock)) {
+            throw new IllegalStateException("O evento já começou ou foi encerrado; a inscrição não pode mais ser cancelada.");
+        }
+    }
+
     public Optional<Participacao> procurarPorId(Long id) {
         return participacaoRepository.findById(id);
     }

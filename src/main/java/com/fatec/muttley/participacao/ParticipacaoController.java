@@ -117,6 +117,7 @@ public class ParticipacaoController {
         Participacao existente = participacaoService.procurarPorIdParaAtualizacao(id)
                 .orElseThrow(() -> new EntityNotFoundException("Participação não encontrada."));
         acesso.validarParticipacao(existente);
+        participacaoService.validarCancelamento(existente);
         participacaoService.apagarPorId(id);
         return ResponseEntity.ok(Map.of("message", "Participação " + id + " deletada com sucesso."));
     }
