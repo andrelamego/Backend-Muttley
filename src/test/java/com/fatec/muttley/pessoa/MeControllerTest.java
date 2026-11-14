@@ -1,7 +1,7 @@
 package com.fatec.muttley.pessoa;
 
 import com.fatec.muttley.certificado.CertificadoService;
-import com.fatec.muttley.medalha.MedalhaService;
+import com.fatec.muttley.conquista.ConquistaService;
 import com.fatec.muttley.participacao.ParticipacaoService;
 import java.util.*;
 import org.junit.jupiter.api.*;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class MeControllerTest {
     @Mock PessoaService pessoas; @Mock CertificadoService certificados;
-    @Mock MedalhaService medalhas; @Mock ParticipacaoService participacoes;
+    @Mock ConquistaService conquistas; @Mock ParticipacaoService participacoes; @Mock FotoPerfilService fotos;
     @InjectMocks MeController controller;
     private JwtAuthenticationToken token() {
         return new JwtAuthenticationToken(Jwt.withTokenValue("teste").header("alg","HS256").subject("pessoa7@example.invalid").claim("userId",99L).build());
@@ -28,13 +28,13 @@ class MeControllerTest {
         assertThat(controller.buscarUsuarioAutenticado(token()).getStatusCode().value()).isEqualTo(200);
         assertThat(controller.listarParticipacoes(token()).getBody()).isEmpty();
         assertThat(controller.listarCertificados(token()).getBody()).isEmpty();
-        assertThat(controller.listarMedalhas(token()).getBody()).isEmpty();
-        verify(participacoes).procurarPorPessoa(7L); verify(certificados).procurarPorPessoa(7L); verify(medalhas).procurarPorPessoa(7L);
-        verifyNoMoreInteractions(participacoes,certificados,medalhas);
+        controller.conquistas(token());
+        verify(participacoes).procurarPorPessoa(7L); verify(certificados).procurarPorPessoa(7L); verify(conquistas).daPessoa(7L);
+        verifyNoMoreInteractions(participacoes,certificados,conquistas);
     }
     @Test void usuarioDoTokenInexistenteRetorna404() {
         assertThatThrownBy(() -> controller.listarCertificados(token())).isInstanceOfSatisfying(ResponseStatusException.class,
                 e -> assertThat(e.getStatusCode().value()).isEqualTo(404));
-        verifyNoInteractions(certificados,medalhas,participacoes);
+        verifyNoInteractions(certificados,conquistas,participacoes);
     }
 }

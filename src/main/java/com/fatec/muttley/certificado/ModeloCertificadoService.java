@@ -1,10 +1,7 @@
 package com.fatec.muttley.certificado;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.Base64;
+import com.fatec.muttley.arquivo.ImagemBase64;
 import java.util.Locale;
-import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,33 +49,7 @@ public class ModeloCertificadoService {
         }
     }
 
-    /** Confere o conteúdo da imagem (não o nome informado) e devolve image/png ou image/jpeg. */
     static String mimeDaLogo(String base64) {
-        byte[] bytes;
-        try {
-            bytes = Base64.getDecoder().decode(base64);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("A logo enviada não é uma imagem válida.");
-        }
-        if (bytes.length > LOGO_MAX_BYTES) {
-            throw new IllegalArgumentException("A logo deve ter até 512 KB.");
-        }
-        try (var input = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
-            var leitores = ImageIO.getImageReaders(input);
-            if (!leitores.hasNext()) throw new IllegalArgumentException("Envie a logo em PNG ou JPG.");
-            var leitor = leitores.next();
-            try {
-                String formato = leitor.getFormatName().toLowerCase(Locale.ROOT);
-                leitor.setInput(input);
-                if (leitor.read(0) == null) throw new IllegalArgumentException("A logo enviada não é uma imagem válida.");
-                if (formato.equals("png")) return "image/png";
-                if (formato.equals("jpeg") || formato.equals("jpg")) return "image/jpeg";
-                throw new IllegalArgumentException("Envie a logo em PNG ou JPG.");
-            } finally {
-                leitor.dispose();
-            }
-        } catch (IOException e) {
-            throw new IllegalArgumentException("A logo enviada não é uma imagem válida.");
-        }
+        return ImagemBase64.mime(base64, LOGO_MAX_BYTES, "A logo");
     }
 }

@@ -1,7 +1,7 @@
 package com.fatec.muttley.pessoa;
 
 import com.fatec.muttley.certificado.CertificadoService;
-import com.fatec.muttley.medalha.MedalhaService;
+import com.fatec.muttley.conquista.ConquistaService;
 import com.fatec.muttley.participacao.ParticipacaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -9,11 +9,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Base64;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,7 +34,9 @@ public class MeController {
 
     private final CertificadoService certificadoService;
 
-    private final MedalhaService medalhaService;
+    private final ConquistaService conquistaService;
+
+    private final FotoPerfilService fotoPerfilService;
 
     private final ParticipacaoService participacaoService;
 
@@ -43,7 +49,7 @@ public class MeController {
     @GetMapping("/api/me")
     public ResponseEntity<PessoaMeResponse> buscarUsuarioAutenticado(JwtAuthenticationToken authentication) {
         Pessoa pessoa = pessoaAutenticada(authentication);
-        return ResponseEntity.ok(PessoaMeResponse.from(pessoa));
+        return ResponseEntity.ok(PessoaMeResponse.from(pessoa, fotoPerfilService.temFoto(pessoa.getId())));
     }
 
     @Operation(summary = "Atualizar dados do usuário autenticado", description = "Altera nome e telefone da própria conta; email e CPF não mudam por aqui.")
@@ -56,7 +62,7 @@ public class MeController {
     public ResponseEntity<PessoaMeResponse> atualizarUsuarioAutenticado(
             JwtAuthenticationToken authentication, @RequestBody @Valid AtualizacaoPerfil dados) {
         Pessoa pessoa = pessoaService.atualizarPerfil(pessoaAutenticada(authentication), dados);
-        return ResponseEntity.ok(PessoaMeResponse.from(pessoa));
+        return ResponseEntity.ok(PessoaMeResponse.from(pessoa, fotoPerfilService.temFoto(pessoa.getId())));
     }
 
     @Operation(summary = "Alterar a senha do usuário autenticado", description = "Exige a senha atual.")
@@ -86,18 +92,47 @@ public class MeController {
         return ResponseEntity.ok(certificados);
     }
 
-    @Operation(summary = "Listar medalhas do usuário autenticado", description = "Retorna todas as medalhas e conquistas obtidas pelo usuário logado.")
+    public record FotoRequest(String imagemBase64) {
+    }
+
+    @Operation(summary = "Foto de perfil do usuário autenticado", description = "Devolve a imagem; 404 se não houver foto.")
+    @GetMapping("/api/me/foto")
+    public ResponseEntity<byte[]> foto(JwtAuthenticationToken authentication) {
+        return fotoPerfilService.daPessoa(pessoaAutenticada(authentication).getId())
+                .map(f -> ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(f.getMime()))
+                        .cacheControl(CacheControl.noCache().cachePrivate())
+                        .body(Base64.getDecoder().decode(f.getImagemBase64())))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sem foto de perfil."));
+    }
+
+    @Operation(summary = "Trocar a foto de perfil", description = "PNG ou JPG em base64, até 512 KB.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de medalhas do usuário"),
+            @ApiResponse(responseCode = "204", description = "Foto salva"),
+            @ApiResponse(responseCode = "400", description = "Imagem inválida ou grande demais")
+    })
+    @PutMapping("/api/me/foto")
+    public ResponseEntity<Void> trocarFoto(JwtAuthenticationToken authentication, @RequestBody FotoRequest dados) {
+        fotoPerfilService.salvar(pessoaAutenticada(authentication).getId(), dados.imagemBase64());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Remover a foto de perfil")
+    @DeleteMapping("/api/me/foto")
+    public ResponseEntity<Void> removerFoto(JwtAuthenticationToken authentication) {
+        fotoPerfilService.remover(pessoaAutenticada(authentication).getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Medalhas do usuário autenticado",
+            description = "Trilhas com nível e progresso, medalhas especiais conquistadas e a posição nas disputas do semestre.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Medalhas calculadas"),
             @ApiResponse(responseCode = "401", description = "Não autenticado ou token inválido")
     })
-    @GetMapping("/api/me/medalhas")
-    public ResponseEntity<List<MedalhaUsuarioResponse>> listarMedalhas(JwtAuthenticationToken authentication) {
-        Pessoa pessoa = pessoaAutenticada(authentication);
-        List<MedalhaUsuarioResponse> medalhas = medalhaService.procurarPorPessoa(pessoa.getId()).stream()
-                .map(MedalhaUsuarioResponse::from)
-                .toList();
-        return ResponseEntity.ok(medalhas);
+    @GetMapping("/api/me/conquistas")
+    public ResponseEntity<ConquistaService.ConquistasResponse> conquistas(JwtAuthenticationToken authentication) {
+        return ResponseEntity.ok(conquistaService.daPessoa(pessoaAutenticada(authentication).getId()));
     }
 
     @Operation(summary = "Listar participações do usuário autenticado", description = "Retorna o histórico de inscrições e presenças em eventos do usuário logado.")
