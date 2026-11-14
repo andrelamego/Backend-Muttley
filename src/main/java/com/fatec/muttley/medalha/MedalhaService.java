@@ -6,10 +6,8 @@ import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -43,42 +41,6 @@ public class MedalhaService {
 
     public List<Medalha> procurarPorPessoa(Long pessoaId) {
         return medalhaRepository.findByPessoaIdComDados(pessoaId);
-    }
-
-    @Transactional
-    public Medalha gerarMedalhaBronzePorPresenca(Participacao participacao) {
-        if (participacao == null || participacao.getId() == null || !participacao.isPresente()) {
-            throw new IllegalArgumentException("A participacao precisa estar confirmada para receber a medalha.");
-        }
-
-        participacao = participacaoService.procurarPorIdParaAtualizacao(participacao.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Participação não encontrada."));
-        if (!participacao.isPresente()) {
-            throw new IllegalArgumentException("A participação precisa estar confirmada para receber a medalha.");
-        }
-
-        if (medalhaRepository.existsByParticipacaoIdAndTipo(participacao.getId(), TipoMedalha.BRONZE)) {
-            return null;
-        }
-
-        Medalha medalha = new Medalha();
-        medalha.setNome("Participacao confirmada");
-        medalha.setDescricao("Medalha concedida pela presenca confirmada no evento.");
-        medalha.setTipo(TipoMedalha.BRONZE);
-        medalha.setParticipacao(participacao);
-        medalha.setParticipacaoPresencaId(participacao.getId());
-        return medalhaRepository.save(medalha);
-    }
-
-    @Transactional
-    public void gerarMedalhasBronzePorPresenca(List<Participacao> participacoes) {
-        participacoes.stream()
-                .filter(Participacao::isPresente)
-                .forEach(this::gerarMedalhaBronzePorPresenca);
-    }
-
-    public List<MedalhaRepository.MedalhasPorParticipante> procurarTotaisPorParticipante(int limite) {
-        return medalhaRepository.findTotaisPorParticipante(PageRequest.of(0, limite));
     }
 
     public void apagarPorId (Long id) {

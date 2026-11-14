@@ -320,12 +320,10 @@ class RegrasCriticasIT {
         assertThatThrownBy(() -> certificadoService.gerarCertificadosParaParticipacoes(List.of(p.getId())))
                 .isInstanceOf(IllegalStateException.class);assertThat(certificados.count()).isZero();
     }
-    @Test void bronzeConcorrenteNaoDuplicaMasMedalhasManuaisPodemSerAdicionadas() throws Exception {
+    @Test void medalhasManuaisPodemSerAdicionadas() {
         var p=inscrito(evento(10,StatusEventoEnum.EM_ANDAMENTO,"09:00","11:00"),ana,true);
-        assertThat(simultaneas(() -> medalhaService.gerarMedalhaBronzePorPresenca(p)==null?0:1,
-                () -> medalhaService.gerarMedalhaBronzePorPresenca(p)==null?0:1)).containsExactlyInAnyOrder(1,0);
         medalhaService.salvarOuAtualizar(new AtualizacaoMedalha(null,"Extra","Mérito",TipoMedalha.BRONZE,p.getId()));
-        assertThat(medalhas.count()).isEqualTo(2);
+        assertThat(medalhas.count()).isEqualTo(1);
     }
     @Test void usuarioSoListaLeEAlteraParticipacaoPropria() throws Exception {
         Evento e=evento(10,StatusEventoEnum.CRIADO,"11:00","12:00");var a=inscrito(e,ana,false);var b=inscrito(e,bia,false);
@@ -354,8 +352,7 @@ class RegrasCriticasIT {
     @Test void meIsolaParticipacoesCertificadosEMedalhasEntrePessoas() throws Exception {
         Evento e=evento(10,StatusEventoEnum.EM_ANDAMENTO,"09:00","11:00");var a=inscrito(e,ana,true);var b=inscrito(e,bia,true);
         certificadoService.gerarCertificadosParaParticipacoes(List.of(a.getId(),b.getId()));
-        medalhaService.gerarMedalhaBronzePorPresenca(a);medalhaService.gerarMedalhaBronzePorPresenca(b);
-        for(String recurso:List.of("participacoes","certificados","medalhas")) {
+        for(String recurso:List.of("participacoes","certificados")) {
             String body=mvc.perform(get("/api/me/"+recurso).header("Authorization",token(ana))).andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1)).andReturn().getResponse().getContentAsString();
             assertThat(body).doesNotContain(bia.getEmail());

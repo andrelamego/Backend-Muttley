@@ -3,7 +3,6 @@ package com.fatec.muttley.evento;
 import com.fatec.muttley.auth.CadastroConviteService;
 import com.fatec.muttley.certificado.*;
 import com.fatec.muttley.email.EmailProducer;
-import com.fatec.muttley.medalha.MedalhaService;
 import com.fatec.muttley.participacao.*;
 import com.fatec.muttley.qrcode.*;
 import com.fatec.muttley.qrcode.dto.QrCodeRequest;
@@ -31,14 +30,14 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class EventoControllerTest {
     @Mock EventoService eventos; @Mock ParticipacaoService participacoes;
-    @Mock CertificadoService certificados; @Mock MedalhaService medalhas;
+    @Mock CertificadoService certificados;
     @Mock EmailProducer emails; @Mock QrCodeProducer qrCodes; @Mock QrCodeClient qrClient;
     @Mock CadastroConviteService convites;
     EventoController controller;
     @TempDir Path diretorio;
     @BeforeEach void configurar() {
         controller = new EventoController(eventos, mock(EventoMapper.class), participacoes, qrCodes, qrClient,
-                certificados, medalhas, emails, convites, "https://muttley.example.invalid",
+                certificados, emails, convites, "https://muttley.example.invalid",
                 new AssinaturaStorage(diretorio.toString()), Clock.systemDefaultZone());
     }
     @Test void RN_EVT_14_criacaoSolicitaOsDoisQrCodes() {
@@ -103,7 +102,6 @@ class EventoControllerTest {
         assertThat(ids.getValue()).containsExactlyInAnyOrder(1L,2L);
         Path salvo=Path.of(arquivo.getValue()); assertThat(salvo.getParent()).isEqualTo(diretorio);
         assertThat(Files.readAllBytes(salvo)).containsExactly(assinatura);
-        verify(medalhas).gerarMedalhasBronzePorPresenca(inscritos);
         InOrder ordem=inOrder(certificados,eventos,emails);
         ordem.verify(certificados).gerarCertificadosParaParticipacoes(anyList(),anyString());
         ordem.verify(eventos).concluirEvento(10L);
@@ -121,14 +119,13 @@ class EventoControllerTest {
         when(eventos.procurarPorIdParaAtualizacao(10L)).thenReturn(Optional.of(evento(CRIADO)));
         assertThatThrownBy(() -> controller.concluirEvento(10L,List.of(1L),new MockMultipartFile("file",new byte[]{1})))
                 .isInstanceOf(IllegalStateException.class);
-        verifyNoInteractions(certificados,medalhas,participacoes,emails);
+        verifyNoInteractions(certificados,participacoes,emails);
         try(var arquivos=Files.list(diretorio)) { assertThat(arquivos).isEmpty(); }
     }
-    @Test void RF_PAR_04_RF_MED_03_presencaGeraBronzeDepoisDaConfirmacao() {
-        Participacao p=participacao(1,true); when(participacoes.confirmarPresenca(10L,"cpf")).thenReturn(p);
+    @Test void RF_PAR_04_confirmacaoDePresencaSoRegistraAPresenca() {
+        when(participacoes.confirmarPresenca(10L,"cpf")).thenReturn(participacao(1,true));
         assertThat(controller.confirmarPresenca(10L,"cpf").getStatusCode().value()).isEqualTo(200);
-        InOrder ordem=inOrder(participacoes,medalhas); ordem.verify(participacoes).confirmarPresenca(10L,"cpf");
-        ordem.verify(medalhas).gerarMedalhaBronzePorPresenca(p);
+        verify(participacoes).confirmarPresenca(10L,"cpf");
     }
     @ParameterizedTest @ValueSource(booleans={true,false})
     void RF_EVT_09_downloadDosDoisQrCodesRetornaPngComoAnexo(boolean inscricao) {

@@ -6,7 +6,6 @@ import com.fatec.muttley.certificado.Certificado;
 import com.fatec.muttley.certificado.CertificadoService;
 import com.fatec.muttley.email.EmailProducer;
 import com.fatec.muttley.evento.enums.StatusEventoEnum;
-import com.fatec.muttley.medalha.MedalhaService;
 import com.fatec.muttley.participacao.AtualizacaoParticipacao;
 import com.fatec.muttley.participacao.AtualizacaoParticipacaoNovoEvento;
 import com.fatec.muttley.participacao.InscricaoPublicaRequest;
@@ -59,7 +58,6 @@ public class EventoController {
 
     private final CertificadoService certificadoService;
 
-    private final MedalhaService medalhaService;
 
     private final EmailProducer emailProducer;
 
@@ -73,7 +71,7 @@ public class EventoController {
 
     public EventoController(EventoService eventoService, EventoMapper eventoMapper,
             ParticipacaoService participacaoService, QrCodeProducer qrCodeProducer, QrCodeClient qrCodeClient,
-            CertificadoService certificadoService, MedalhaService medalhaService, EmailProducer emailProducer,
+            CertificadoService certificadoService, EmailProducer emailProducer,
             CadastroConviteService cadastroConviteService,
             @Value("${app.frontend.url}") String frontendUrl, AssinaturaStorage assinaturaStorage, Clock clock) {
         this.eventoService = eventoService;
@@ -82,7 +80,6 @@ public class EventoController {
         this.qrCodeProducer = qrCodeProducer;
         this.qrCodeClient = qrCodeClient;
         this.certificadoService = certificadoService;
-        this.medalhaService = medalhaService;
         this.emailProducer = emailProducer;
         this.cadastroConviteService = cadastroConviteService;
         this.frontendUrl = frontendUrl;
@@ -356,7 +353,7 @@ public class EventoController {
     }
 
     @Operation(summary = "Concluir evento e emitir certificados",
-            description = "Finaliza o evento que esteja EM_ANDAMENTO, marca presenças, gera medalhas de presença e emite certificados com a assinatura digital.",
+            description = "Finaliza o evento que esteja EM_ANDAMENTO, marca presenças e emite certificados com a assinatura digital.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Evento concluído e certificados gerados"),
@@ -396,10 +393,6 @@ public class EventoController {
                 .map(Participacao::getId)
                 .collect(Collectors.toSet());
 
-        medalhaService.gerarMedalhasBronzePorPresenca(
-                participacaoService.procurarPorEvento(id)
-        );
-
         List<Certificado> certificadosEmail = certificadoService
                 .gerarCertificadosParaParticipacoes(todosPresentes.stream().sorted().toList(), caminhoAssinatura);
 
@@ -413,7 +406,7 @@ public class EventoController {
     }
 
     @Operation(summary = "Confirmar presença pública por CPF",
-            description = "Confirma a presença presencial do participante através do CPF informado e gera medalha de presença.")
+            description = "Confirma a presença presencial do participante através do CPF informado.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Presença confirmada com sucesso"),
             @ApiResponse(responseCode = "400", description = "CPF inválido ou regra violada"),
@@ -425,8 +418,7 @@ public class EventoController {
             @Parameter(description = "ID do evento") @PathVariable Long eventoId,
             @Parameter(description = "CPF válido do participante") @PathVariable @ValidCpf String cpf) {
 
-        Participacao participacao = participacaoService.confirmarPresenca(eventoId, cpf);
-        medalhaService.gerarMedalhaBronzePorPresenca(participacao);
+        participacaoService.confirmarPresenca(eventoId, cpf);
         return ResponseEntity.ok("Presença confirmada com sucesso!");
     }
 }
