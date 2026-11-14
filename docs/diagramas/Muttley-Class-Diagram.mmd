@@ -1,0 +1,137 @@
+---
+config:
+  htmlLabels: false
+---
+%% Entidades do domínio; DTOs, serviços, controllers e acessores omitidos.
+%% Associações opcionais seguem os mapeamentos persistidos, não a validação dos DTOs.
+classDiagram
+    direction LR
+    class Pessoa {
+        -Long id
+        -String nome
+        -String email
+        -String telefone
+        -String cpf
+        -String senha
+        -String cadastroTokenHash
+        -Instant cadastroTokenExpiraEm
+        -Role role
+        +adicionarParticipacao(Participacao participacao) void
+    }
+    class Aluno {
+        -Long id
+        -String instituicao
+        -String matricula
+    }
+    class Professor {
+        -Long id
+        -String areaFormacao
+        -String titulacao
+    }
+    class Palestrante {
+        -Long id
+        -String resumoProfissional
+        -String empresaAtual
+        -String cargo
+    }
+    class Organizador {
+        -Long id
+        -String instituicao
+        -String cargo
+    }
+    class Colaborador {
+        -Long id
+        -String funcao
+        -String disponibilidade
+        -String tipo
+    }
+    class Evento {
+        -Long id
+        -String tema
+        -LocalDate data
+        -String horarioInicio
+        -String horarioFim
+        -String descricao
+        -ModalidadeEventoEnum modalidade
+        -StatusEventoEnum status
+        -String qrCodeInscricaoUrl
+        -String qrCodeConfirmacaoUrl
+        +adicionarParticipacao(Participacao participacao) void
+    }
+    class Participacao {
+        -Long id
+        -int inscricao
+        -String tipo
+        -boolean presente
+    }
+    class Certificado {
+        -Long id
+        -LocalDate dataEmissao
+        -String assinatura
+        -String codigoValidacao
+        -String urlPublica
+        -String caminhoPdf
+        -String caminhoAssinaturaVisual
+        +preencherDadosPublicos() void
+    }
+    class Medalha {
+        -Long id
+        -String nome
+        -String descricao
+        -TipoMedalha tipo
+        -Long participacaoPresencaId
+        +preencherTipoPadrao() void
+    }
+    class Disciplina {
+        -Long id
+        -String nome
+        -String descricao
+        -TurnoDisciplinaEnum turno
+    }
+    class Local {
+        -Long id
+        -String nome
+        -String descricao
+        -int capacidade
+    }
+    class Endereco {
+        -Long id
+        -String estado
+        -String cidade
+        -String bairro
+        -String logradouro
+        -int numero
+        -String complemento
+    }
+    class Patrocinador {
+        -Long id
+        -String nome
+        -String cnpj
+        -double valorPatrocinio
+        -String email
+        -String telefone
+        -String site
+    }
+    class SequenciaInscricao {
+        -Long id
+        -long valor
+    }
+
+    Pessoa "1" -- "0..1" Aluno : perfil
+    Pessoa "1" -- "0..1" Professor : perfil
+    Pessoa "1" -- "0..1" Palestrante : perfil
+    Pessoa "1" -- "0..1" Organizador : perfil
+    Pessoa "1" -- "0..1" Colaborador : perfil
+    Pessoa "1" -- "0..*" Participacao : participa
+    Evento "1" -- "0..*" Participacao : recebe
+    Participacao "0..1" -- "0..1" Certificado : certifica
+    Participacao "0..1" -- "0..*" Medalha : recebe
+    Professor "0..1" -- "0..*" Disciplina : ministra
+    Disciplina "0..1" -- "0..*" Evento : contextualiza
+    Patrocinador "0..1" -- "0..*" Evento : patrocina
+    Local "0..1" -- "0..*" Evento : recebe
+    Endereco "0..1" -- "0..*" Local : localiza
+
+    note for Pessoa "Perfis associados por MapsId; não há herança Java."
+    note for Certificado "A FK única limita a um certificado por participação."
+    note for SequenciaInscricao "Controle técnico da numeração; sem associação JPA."

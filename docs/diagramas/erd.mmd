@@ -1,0 +1,134 @@
+%% Modelo físico: V1__estrutura_inicial.sql. Cardinalidades refletem NULL/NOT NULL.
+%% UNIQUE composto de participacao não torna cada FK individualmente única.
+erDiagram
+    direction LR
+    PESSOA {
+        bigint id_pessoa PK
+        varchar nome
+        varchar email UK
+        varchar telefone
+        varchar cpf
+        varchar senha
+        enum role "ADMIN ou USER"
+        varchar cadastro_token_hash UK
+        datetime cadastro_token_expira_em
+    }
+    ALUNO {
+        bigint id_pessoa PK, FK
+        varchar instituicao
+        varchar matricula
+    }
+    PROFESSOR {
+        bigint id_pessoa PK, FK
+        varchar area_formacao
+        varchar titulacao
+    }
+    PALESTRANTE {
+        bigint id_pessoa PK, FK
+        varchar resumo_profissional
+        varchar empresa_atual
+        varchar cargo
+    }
+    ORGANIZADOR {
+        bigint id_pessoa PK, FK
+        varchar instituicao
+        varchar cargo
+    }
+    COLABORADOR {
+        bigint id_pessoa PK, FK
+        varchar funcao
+        varchar disponibilidade
+        varchar tipo
+    }
+    ENDERECO {
+        bigint id_endereco PK
+        varchar estado
+        varchar cidade
+        varchar bairro
+        varchar logradouro
+        int numero "NOT NULL"
+        varchar complemento
+    }
+    LOCAL {
+        bigint id_local PK
+        varchar nome
+        varchar descricao
+        int capacidade "NOT NULL"
+        bigint id_endereco FK
+    }
+    DISCIPLINA {
+        bigint id_disciplina PK
+        varchar nome
+        varchar descricao
+        enum turno
+        bigint id_professor FK
+    }
+    PATROCINADOR {
+        bigint id_patrocinador PK
+        varchar nome
+        varchar cnpj
+        double valor_patrocinio "NOT NULL"
+        varchar email
+        varchar telefone
+        varchar site
+    }
+    EVENTO {
+        bigint id_evento PK
+        varchar tema
+        date data
+        varchar horario_inicio
+        varchar horario_fim
+        varchar descricao
+        enum modalidade
+        enum status
+        bigint id_disciplina FK
+        bigint id_patrocinador FK
+        bigint id_local FK
+        varchar qr_code_inscricao_url
+        varchar qr_code_confirmacao_url
+    }
+    PARTICIPACAO {
+        bigint id_participacao PK
+        int inscricao "NOT NULL"
+        varchar tipo
+        bit presente "NOT NULL"
+        bigint id_evento FK "NOT NULL; UK composta evento+pessoa"
+        bigint id_pessoa FK "NOT NULL; UK composta evento+pessoa"
+    }
+    CERTIFICADO {
+        bigint id_certificado PK
+        date data_emissao
+        varchar assinatura
+        varchar codigo_validacao UK
+        varchar url_publica UK
+        varchar caminho_pdf
+        varchar caminho_assinatura_visual
+        bigint id_participacao FK, UK
+    }
+    MEDALHA {
+        bigint id_medalha PK
+        varchar nome
+        varchar descricao
+        varchar tipo "NOT NULL; padrao BRONZE"
+        bigint id_participacao FK
+        bigint participacao_presenca_id UK "Sem FK; unicidade do bronze automatico"
+    }
+    SEQUENCIA_INSCRICAO {
+        bigint id PK "Registro de controle: id 1"
+        bigint valor "NOT NULL"
+    }
+
+    PESSOA ||--o| ALUNO : possui
+    PESSOA ||--o| PROFESSOR : possui
+    PESSOA ||--o| PALESTRANTE : possui
+    PESSOA ||--o| ORGANIZADOR : possui
+    PESSOA ||--o| COLABORADOR : possui
+    PESSOA ||..o{ PARTICIPACAO : participa
+    EVENTO ||..o{ PARTICIPACAO : recebe
+    PARTICIPACAO |o..o| CERTIFICADO : certifica
+    PARTICIPACAO |o..o{ MEDALHA : recebe
+    PROFESSOR |o..o{ DISCIPLINA : ministra
+    DISCIPLINA |o..o{ EVENTO : contextualiza
+    PATROCINADOR |o..o{ EVENTO : patrocina
+    LOCAL |o..o{ EVENTO : recebe
+    ENDERECO |o..o{ LOCAL : localiza

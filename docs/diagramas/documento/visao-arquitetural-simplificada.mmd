@@ -1,0 +1,38 @@
+---
+config:
+  theme: base
+  fontFamily: Arial
+  themeVariables:
+    fontFamily: Arial
+    fontSize: 20px
+    primaryColor: '#f5f5f5'
+    primaryTextColor: '#171717'
+    primaryBorderColor: '#404040'
+    lineColor: '#404040'
+    edgeLabelBackground: '#ffffff'
+  flowchart:
+    curve: linear
+    nodeSpacing: 40
+    rankSpacing: 55
+---
+%% Visão resumida para documentos. Os dois caminhos de QR Code são preservados.
+%% Setas duplas tracejadas: solicitação e resposta por tópicos distintos.
+flowchart TB
+    WEB["Frontend web"]
+    API["API Muttley"]
+    DB[("Banco de dados")]
+    PDF["Serviço PDF"]
+    QR["Serviço QR Code"]
+    KAFKA["Kafka"]
+    EMAIL["Serviço de e-mail<br/>Envio via SMTP"]
+
+    WEB <-->|HTTP| API
+    API <-->|SQL| DB
+    API <-->|HTTP| PDF
+    API <-->|HTTP| QR
+    API <-.->|Mensagens| KAFKA
+    KAFKA <-.->|Pedido e resultado| QR
+    KAFKA -.->|Notificações| EMAIL
+
+    classDef central fill:#e6e6e6,stroke:#171717,stroke-width:2px;
+    class API,KAFKA central;
