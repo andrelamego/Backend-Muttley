@@ -3,6 +3,7 @@ package com.fatec.muttley.certificado;
 import com.fatec.muttley.evento.EventoService;
 import com.fatec.muttley.evento.enums.StatusEventoEnum;
 import com.fatec.muttley.participacao.*;
+import com.fatec.muttley.pessoa.Pessoa;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDate;
 import java.time.Clock;
@@ -105,11 +106,18 @@ class CertificadoServiceTest {
     @Test void RF_CER_02_listagemAdministrativaAgrupaCertificadosPendenciasERecentes() {
         var certificados=mock(CertificadoService.class);var eventos=mock(EventoService.class);
         var controller=new CertificadoController(certificados,eventos,mock(AssinaturaStorage.class));
-        var c=new Certificado();var e=evento(StatusEventoEnum.EM_ANDAMENTO);
+        var e=evento(StatusEventoEnum.EM_ANDAMENTO);e.setTema("Spring na prática");
+        var pessoa=new Pessoa();pessoa.setNome("Ana");pessoa.setEmail("ana@fatec.sp.gov.br");pessoa.setCpf("12345678900");
+        var participacao=new Participacao();participacao.setPessoa(pessoa);participacao.setEvento(e);
+        var c=new Certificado();c.setParticipacao(participacao);
         when(certificados.procurarTodos()).thenReturn(List.of(c));when(certificados.procurarUltimosEmitidos()).thenReturn(List.of(c));
         when(eventos.procurarEventosAguardandoEmissaoCertificado()).thenReturn(List.of(e));
         var body=controller.listarDados().getBody();
-        assertThat(body.get("certificados")).isEqualTo(List.of(c));assertThat(body.get("ultimosCertificados")).isEqualTo(List.of(c));
+        var esperado=List.of(CertificadoAdminResponse.de(c));
+        assertThat(body.get("certificados")).isEqualTo(esperado);assertThat(body.get("ultimosCertificados")).isEqualTo(esperado);
+        // o evento chega na listagem e o CPF não sai
+        assertThat(esperado.get(0).participacao().evento().tema()).isEqualTo("Spring na prática");
+        assertThat(esperado.get(0).participacao().pessoa().toString()).doesNotContain("12345678900");
         assertThat(body.get("eventosAguardandoCertificado")).isEqualTo(List.of(e));
     }
 }
