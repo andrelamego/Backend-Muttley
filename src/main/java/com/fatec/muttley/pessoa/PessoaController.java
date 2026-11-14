@@ -19,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.validation.groups.Default;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -93,7 +95,8 @@ public class PessoaController {
 
     @Operation(summary = "Cadastrar pessoa (Administração)", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/admin/pessoas")
-    public ResponseEntity<Map<String, String>> criar(@RequestBody @Valid AtualizacaoPessoa dto) {
+    public ResponseEntity<Map<String, String>> criar(
+            @RequestBody @Validated({Default.class, AtualizacaoPessoa.Criacao.class}) AtualizacaoPessoa dto) {
         Pessoa pessoaSalva = pessoaService.salvarOuAtualizar(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("message", "Pessoa '" + pessoaSalva.getNome() + "' criada com sucesso!"));

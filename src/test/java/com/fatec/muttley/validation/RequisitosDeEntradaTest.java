@@ -1,5 +1,6 @@
 package com.fatec.muttley.validation;
 
+import jakarta.validation.groups.Default;
 import com.fatec.muttley.aluno.*;
 import com.fatec.muttley.certificado.*;
 import com.fatec.muttley.colaborador.*;
@@ -43,7 +44,7 @@ class RequisitosDeEntradaTest {
     @AfterAll static void fechar() { factory.close(); context.close(); }
     static Stream<Arguments> obrigatorios() {
         return Stream.of(
-                Arguments.of(new AtualizacaoPessoa(null,null,null,null,null,null),"nome,email,telefone,cpf,senha"),
+                Arguments.of(new AtualizacaoPessoa(null,null,null,null,null,null),"nome,email,telefone,cpf"),
                 Arguments.of(new AtualizacaoEvento(null,null,null,null,null,null,null,null,null,null,null),"tema,descricao,data,horarioInicio,horarioFim,modalidade,disciplinaId,patrocinadorId,localId"),
                 Arguments.of(new InscricaoPublicaRequest(null,null,null),"nomeCompleto,cpf,email"),
                 Arguments.of(new AtualizacaoParticipacao(null,0,null,null,null),"tipo,pessoaId,eventoId"),
@@ -64,6 +65,12 @@ class RequisitosDeEntradaTest {
     void rejeitaAusenciaDosCamposDescritosNosRequisitos(Object dto,String campos) {
         assertThat(validator.validate(dto).stream().map(v->v.getPropertyPath().toString()).distinct())
                 .containsExactlyInAnyOrder(campos.split(","));
+    }
+    @Test void senhaObrigatoriaSoNoCadastroDeNovaPessoa() {
+        var semSenha=new AtualizacaoPessoa(1L,"Nome","nome@example.invalid","11999999999","529.982.247-25",null);
+        assertThat(validator.validate(semSenha)).isEmpty();
+        assertThat(validator.validate(semSenha, Default.class, AtualizacaoPessoa.Criacao.class))
+                .extracting(v->v.getPropertyPath().toString()).containsExactly("senha");
     }
     @Test void RN_PES_01_cadastroValidoEEmailECpfInvalidos() {
         assertThat(validator.validate(dadosPessoa(null,"senha"))).isEmpty();
