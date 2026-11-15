@@ -11,8 +11,10 @@ import jakarta.persistence.EntityNotFoundException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -24,6 +26,9 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class ParticipacaoService {
+    /** Tipo da participação de quem apresenta o evento; também dá a medalha especial Palestrante. */
+    public static final String TIPO_PALESTRANTE = "Palestrante";
+
     private final Clock clock;
 
     private final NumeroInscricaoService numeros;
@@ -73,6 +78,48 @@ public class ParticipacaoService {
             novoParticipacao.setEvento(evento);
             return participacaoRepository.save(novoParticipacao);
         }
+    }
+
+    /**
+     * Deixa os palestrantes do evento iguais à lista: cria quem entrou, promove
+     * quem já estava inscrito e remove quem saiu. Palestrante não depende de
+     * inscrições abertas nem ocupa vaga da plateia.
+     */
+    @Transactional
+    public void definirPalestrantes(Long eventoId, List<Long> pessoaIds) {
+        Evento evento = eventoService.procurarPorIdParaAtualizacao(eventoId)
+                .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado com o id: " + eventoId));
+        Set<Long> desejados = new LinkedHashSet<>(pessoaIds);
+
+        for (Participacao participacao : participacaoRepository.findByEventoIdComDadosOrderByInscricaoAsc(eventoId)) {
+            boolean palestrante = TIPO_PALESTRANTE.equalsIgnoreCase(participacao.getTipo());
+            if (desejados.remove(participacao.getPessoa().getId())) {
+                participacao.setTipo(TIPO_PALESTRANTE);
+            } else if (palestrante) {
+                if (participacao.isPresente()) {
+                    throw new IllegalStateException(participacao.getPessoa().getNome()
+                            + " já teve a presença registrada e não pode sair dos palestrantes.");
+                }
+                participacaoRepository.delete(participacao);
+            }
+        }
+
+        for (Long pessoaId : desejados) {
+            Pessoa pessoa = pessoaService.procurarPorId(pessoaId)
+                    .orElseThrow(() -> new EntityNotFoundException("Pessoa não encontrada com o id: " + pessoaId));
+            Participacao nova = new Participacao();
+            nova.setInscricao(numeros.proximo());
+            nova.setTipo(TIPO_PALESTRANTE);
+            nova.setPessoa(pessoa);
+            nova.setEvento(evento);
+            participacaoRepository.save(nova);
+        }
+    }
+
+    public List<Participacao> procurarPalestrantes(Long eventoId) {
+        return participacaoRepository.findByEventoIdComDadosOrderByInscricaoAsc(eventoId).stream()
+                .filter(p -> TIPO_PALESTRANTE.equalsIgnoreCase(p.getTipo()))
+                .toList();
     }
 
     public List<Participacao> procurarTodos() {
@@ -214,7 +261,7 @@ public class ParticipacaoService {
     }
 
     private void validarVagas(Evento evento) {
-        if (evento.getLocal() == null || participacaoRepository.countByEventoId(evento.getId()) >= evento.getLocal().getCapacidade()) {
+        if (evento.getLocal() == null || participacaoRepository.contarPlateia(evento.getId(), TIPO_PALESTRANTE) >= evento.getLocal().getCapacidade()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "As vagas deste evento estão esgotadas.");
         }
     }

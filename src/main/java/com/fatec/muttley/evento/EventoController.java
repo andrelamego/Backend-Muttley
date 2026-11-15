@@ -6,8 +6,6 @@ import com.fatec.muttley.certificado.Certificado;
 import com.fatec.muttley.certificado.CertificadoService;
 import com.fatec.muttley.email.EmailProducer;
 import com.fatec.muttley.evento.enums.StatusEventoEnum;
-import com.fatec.muttley.participacao.AtualizacaoParticipacao;
-import com.fatec.muttley.participacao.AtualizacaoParticipacaoNovoEvento;
 import com.fatec.muttley.participacao.InscricaoPublicaRequest;
 import com.fatec.muttley.participacao.Participacao;
 import com.fatec.muttley.participacao.ParticipacaoComEventoResponse;
@@ -170,11 +168,14 @@ public class EventoController {
             @ApiResponse(responseCode = "404", description = "Evento não encontrado")
     })
     @GetMapping("/api/admin/eventos/{id}")
-    public ResponseEntity<AtualizacaoEvento> buscarPorId(
+    public ResponseEntity<EventoAdminResponse> buscarPorId(
             @Parameter(description = "ID do evento") @PathVariable Long id) {
         Evento evento = eventoService.procurarPorId(id)
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
-        return ResponseEntity.ok(eventoMapper.toAtualizacaoDto(evento));
+        List<EventoAdminResponse.PalestranteResumo> palestrantes = participacaoService.procurarPalestrantes(id).stream()
+                .map(p -> new EventoAdminResponse.PalestranteResumo(p.getPessoa().getId(), p.getPessoa().getNome()))
+                .toList();
+        return ResponseEntity.ok(new EventoAdminResponse(eventoMapper.toAtualizacaoDto(evento), palestrantes));
     }
 
     @Operation(summary = "Criar novo evento com participantes",
@@ -190,22 +191,9 @@ public class EventoController {
     @Transactional
     public ResponseEntity<Map<String, Object>> criar(@RequestBody @Valid EventoComParticipacaoDTO dto) {
         AtualizacaoEvento dtoEvento = dto.evento().withId(null);
-        List<AtualizacaoParticipacaoNovoEvento> dtoNovasParticipacoes = dto.participacoes();
-
         Evento eventoSalvo = eventoService.salvarOuAtualizar(dtoEvento);
-
-        if(dtoNovasParticipacoes != null) {
-            for (AtualizacaoParticipacaoNovoEvento participacao : dtoNovasParticipacoes) {
-                AtualizacaoParticipacao dtoParticipacao = new AtualizacaoParticipacao(
-                        participacao.id(),
-                        participacao.inscricao(),
-                        participacao.tipo(),
-                        participacao.pessoaId(),
-                        eventoSalvo.getId()
-                );
-
-                participacaoService.salvarOuAtualizar(dtoParticipacao);
-            }
+        if (dto.palestrantes() != null) {
+            participacaoService.definirPalestrantes(eventoSalvo.getId(), dto.palestrantes());
         }
 
         qrCodeProducer.publicarQrCodeInscricao(eventoSalvo, frontendUrl);
@@ -236,22 +224,9 @@ public class EventoController {
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
 
         AtualizacaoEvento dtoEvento = dto.evento().withId(id);
-        List<AtualizacaoParticipacaoNovoEvento> dtoNovasParticipacoes = dto.participacoes();
-
         Evento eventoSalvo = eventoService.salvarOuAtualizar(dtoEvento);
-
-        if(dtoNovasParticipacoes != null) {
-            for (AtualizacaoParticipacaoNovoEvento participacao : dtoNovasParticipacoes) {
-                AtualizacaoParticipacao dtoParticipacao = new AtualizacaoParticipacao(
-                        participacao.id(),
-                        participacao.inscricao(),
-                        participacao.tipo(),
-                        participacao.pessoaId(),
-                        eventoSalvo.getId()
-                );
-
-                participacaoService.salvarOuAtualizar(dtoParticipacao);
-            }
+        if (dto.palestrantes() != null) {
+            participacaoService.definirPalestrantes(eventoSalvo.getId(), dto.palestrantes());
         }
 
         return ResponseEntity.ok(Map.of("message", "Evento '" + eventoSalvo.getTema() + "' atualizado com sucesso."));

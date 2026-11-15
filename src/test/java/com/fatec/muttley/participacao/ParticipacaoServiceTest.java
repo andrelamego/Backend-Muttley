@@ -161,4 +161,39 @@ class ParticipacaoServiceTest {
         Participacao p=participacao(1,false); Evento e=evento(CRIADO); e.setData(LocalDate.now().minusDays(1)); p.setEvento(e);
         assertThatThrownBy(() -> service.validarCancelamento(p)).isInstanceOf(IllegalStateException.class).hasMessageContaining("começou");
     }
+
+    private Participacao vinculo(long id, long pessoaId, String tipo, boolean presente) {
+        Participacao p = participacao(id, presente); p.setPessoa(pessoa(pessoaId)); p.setTipo(tipo); return p;
+    }
+    @Test void palestrantesSincronizamComALista() {
+        eventoAberto();
+        Participacao sai = vinculo(1, 1L, "Palestrante", false);
+        Participacao fica = vinculo(2, 2L, "Palestrante", false);
+        Participacao promovido = vinculo(3, 3L, "Participante", false);
+        Participacao plateia = vinculo(4, 4L, "Participante", false);
+        when(repository.findByEventoIdComDadosOrderByInscricaoAsc(10L)).thenReturn(List.of(sai, fica, promovido, plateia));
+        when(pessoas.procurarPorId(5L)).thenReturn(Optional.of(pessoa(5L)));
+        when(numeros.proximo()).thenReturn(77);
+
+        service.definirPalestrantes(10L, List.of(2L, 3L, 5L));
+
+        verify(repository).delete(sai);
+        assertThat(fica.getTipo()).isEqualTo("Palestrante");
+        assertThat(promovido.getTipo()).isEqualTo("Palestrante");
+        assertThat(plateia.getTipo()).isEqualTo("Participante");
+        verify(repository, never()).delete(plateia);
+        var nova = ArgumentCaptor.forClass(Participacao.class);
+        verify(repository).save(nova.capture());
+        assertThat(nova.getValue().getPessoa().getId()).isEqualTo(5L);
+        assertThat(nova.getValue().getTipo()).isEqualTo("Palestrante");
+        assertThat(nova.getValue().getInscricao()).isEqualTo(77);
+    }
+    @Test void palestranteComPresencaNaoPodeSerRemovido() {
+        eventoAberto();
+        when(repository.findByEventoIdComDadosOrderByInscricaoAsc(10L))
+                .thenReturn(List.of(vinculo(1, 1L, "Palestrante", true)));
+        assertThatThrownBy(() -> service.definirPalestrantes(10L, List.of()))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("presença");
+        verify(repository, never()).delete(any());
+    }
 }
