@@ -45,12 +45,15 @@ public class CertificadoHtml {
     private final TemplateEngine templateEngine;
     private final String fonteTitulo;
     private final String fonteTexto;
+    private final String guilhoche;
 
     public CertificadoHtml(TemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
         // O Chromium do serviço de PDF não tem as fontes da identidade; elas vão embutidas no HTML.
         this.fonteTitulo = base64("certificado/fontes/bricolage-grotesque.woff2");
         this.fonteTexto = base64("certificado/fontes/schibsted-grotesk.woff2");
+        // Máscara do guilhochê do leiaute Clássico: o traço é transparência, a cor vem do modelo.
+        this.guilhoche = base64("certificado/guilhoche.svg");
     }
 
     public Map<String, Object> variaveis(ModeloCertificado modelo, Dados dados) {
@@ -78,6 +81,7 @@ public class CertificadoHtml {
         v.put("textoSobreDestaque", corDoTextoSobre(destaque));
         v.put("fonteTitulo", fonteTitulo);
         v.put("fonteTexto", fonteTexto);
+        v.put("guilhoche", guilhoche);
         return v;
     }
 

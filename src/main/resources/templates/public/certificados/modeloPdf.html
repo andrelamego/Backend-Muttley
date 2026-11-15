@@ -79,6 +79,14 @@
 
         /* Leiaute Clássico: moldura dupla e composição centralizada */
         .classico { padding: 11mm; }
+        /* Guilhochê de documento oficial, pintado na cor principal do modelo, atrás da moldura. */
+        .classico::before {
+            content: ''; position: absolute; inset: 0; opacity: 0.14;
+            background: [(${corPrincipal})];
+            -webkit-mask: url(data:image/svg+xml;base64,[(${guilhoche})]) center / 100% 100% no-repeat;
+            mask: url(data:image/svg+xml;base64,[(${guilhoche})]) center / 100% 100% no-repeat;
+        }
+        .classico .moldura { position: relative; }
         .moldura { height: 100%; border: 1.3mm solid [(${corPrincipal})]; padding: 3mm; }
         .moldura-interna {
             height: 100%; border: 0.45mm solid [(${corDestaque})];

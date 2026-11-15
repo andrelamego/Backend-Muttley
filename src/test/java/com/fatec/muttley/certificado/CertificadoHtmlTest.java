@@ -63,6 +63,8 @@ class CertificadoHtmlTest {
         modelo.setCorPrincipal("#7a1f2b");
         String classico = html.renderizar(html.variaveis(modelo, dados("Bruno")));
         assertThat(classico).contains("class=\"folha classico\"", "#7a1f2b").doesNotContain("class=\"folha ingresso\"");
+        // O guilhochê vai embutido como máscara, para o Chromium do serviço de PDF não buscar arquivo nenhum.
+        assertThat(classico).contains("mask: url(data:image/svg+xml;base64,");
     }
 
     @Test void logoPrecisaSerImagemPngOuJpgDeVerdade() {
