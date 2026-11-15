@@ -15,6 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 public interface ParticipacaoRepository extends JpaRepository<Participacao, Long> {
     long countByEventoId(Long eventoId);
 
+    /** Inscritos que ocupam lugar na plateia: quem palestra não conta. */
+    @Query("""
+            select count(participacao) from Participacao participacao
+            where participacao.evento.id = :eventoId
+              and (participacao.tipo is null or lower(participacao.tipo) <> lower(:tipoPalestrante))
+            """)
+    long contarPlateia(Long eventoId, String tipoPalestrante);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Participacao p where p.id = :id")
     Optional<Participacao> findByIdParaAtualizacao(Long id);
