@@ -125,7 +125,7 @@ class RegrasCriticasIT {
             Local l=new Local();l.setNome("Auditório");l.setCapacidade(capacidade);locais.save(l);
             Disciplina d=new Disciplina();d.setNome("Programação");disciplinas.save(d);
             Patrocinador p=new Patrocinador();p.setNome("Patrocinador");patrocinadores.save(p);
-            Evento e=new Evento();e.setTema("Semana acadêmica");e.setDescricao("Teste integrado");e.setData(LocalDate.of(2026,9,3));e.setHorarioInicio(inicio);e.setHorarioFim(fim);e.setStatus(status);e.setModalidade(ModalidadeEventoEnum.values()[0]);e.setLocal(l);e.setDisciplina(d);e.setPatrocinador(p);return eventos.saveAndFlush(e);
+            Evento e=new Evento();e.setTema("Semana acadêmica");e.setDescricao("Teste integrado");e.setData(LocalDate.of(2026,9,3));e.setHorarioInicio(inicio);e.setHorarioFim(fim);e.setStatus(status);e.setModalidade(ModalidadeEventoEnum.values()[0]);e.setLocal(l);e.setDisciplina(d);e.setPatrocinador(p);e.setCodigoConfirmacao("codigo-it");return eventos.saveAndFlush(e);
         });
     }
     Participacao inscrito(Evento e,Pessoa p,boolean presente) {
@@ -137,7 +137,7 @@ class RegrasCriticasIT {
                 .content(json.writeValueAsString(new InscricaoPublicaRequest(p.getNome(),p.getCpf(),p.getEmail())))).andReturn().getResponse().getStatus();
     }
     int confirmar(Evento e,Pessoa p) throws Exception {
-        return mvc.perform(post("/api/eventos/{id}/confirmar-presenca/{cpf}",e.getId(),p.getCpf())).andReturn().getResponse().getStatus();
+        return mvc.perform(post("/api/eventos/{id}/confirmar-presenca/{cpf}",e.getId(),p.getCpf()).param("codigo","codigo-it")).andReturn().getResponse().getStatus();
     }
     MockMultipartFile assinatura(String formato) {
         return new MockMultipartFile("file","assinatura."+formato,formato.equals("png")?"image/png":"image/jpeg",ImagensTeste.criar(formato));
@@ -207,10 +207,16 @@ class RegrasCriticasIT {
         Evento e=evento(10,status,"09:00","11:00");inscrito(e,ana,false);
         assertThat(confirmar(e,ana)).isEqualTo(409);assertThat(medalhas.count()).isZero();
     }
+    @Test void presencaSemCodigoDoQrNaoConfirma() throws Exception {
+        Evento e=evento(10,StatusEventoEnum.EM_ANDAMENTO,"09:00","11:00");inscrito(e,ana,false);
+        mvc.perform(post("/api/eventos/{id}/confirmar-presenca/{cpf}",e.getId(),ana.getCpf()).param("codigo","chutado")).andExpect(status().isNotFound());
+        mvc.perform(post("/api/eventos/{id}/confirmar-presenca/{cpf}",e.getId(),ana.getCpf())).andExpect(status().isBadRequest());
+        assertThat(participacoes.findAll()).noneMatch(Participacao::isPresente);assertThat(medalhas.count()).isZero();
+    }
     @Test void presencaSemInscricaoECpfInvalidoNaoGeramMedalha() throws Exception {
         Evento e=evento(10,StatusEventoEnum.EM_ANDAMENTO,"09:00","11:00");
         assertThat(confirmar(e,ana)).isEqualTo(404);
-        mvc.perform(post("/api/eventos/{id}/confirmar-presenca/11111111111",e.getId())).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/eventos/{id}/confirmar-presenca/11111111111",e.getId()).param("codigo","codigo-it")).andExpect(status().isBadRequest());
         assertThat(medalhas.count()).isZero();
     }
     @Test void ultimaVagaTemUmVencedorComDuasInscricoesSimultaneas() throws Exception {
@@ -304,9 +310,10 @@ class RegrasCriticasIT {
         mvc.perform(get("/api/participacoes").header("Authorization",token(ana))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].id").value(a.getId()));
         mvc.perform(get("/api/participacoes/{id}",b.getId()).header("Authorization",token(ana))).andExpect(status().isForbidden());
-        var dto=new AtualizacaoParticipacao(a.getId(),a.getInscricao(),"Participante",ana.getId(),e.getId());
+        var dto=new AtualizacaoParticipacao(a.getId(), 999,"Palestrante",ana.getId(),e.getId());
         mvc.perform(put("/api/participacoes/{id}",b.getId()).header("Authorization",token(ana)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(dto))).andExpect(status().isForbidden());
         mvc.perform(put("/api/participacoes/{id}",a.getId()).header("Authorization",token(ana)).contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(dto))).andExpect(status().isOk());
+        assertThat(participacoes.findById(a.getId())).get().extracting(Participacao::getTipo,Participacao::getInscricao).containsExactly("Participante",a.getInscricao());
         mvc.perform(delete("/api/participacoes/{id}",b.getId()).header("Authorization",token(ana))).andExpect(status().isForbidden());
         mvc.perform(delete("/api/participacoes/{id}",a.getId()).header("Authorization",token(ana))).andExpect(status().isOk());
         assertThat(participacoes.findById(b.getId())).isPresent();

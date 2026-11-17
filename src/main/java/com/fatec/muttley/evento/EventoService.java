@@ -14,6 +14,8 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class EventoService {
+    private static final SecureRandom ALEATORIO = new SecureRandom();
     private final Clock clock;
     private final EventoRepository eventoRepository;
 
@@ -173,6 +176,18 @@ public class EventoService {
                 inicio,
                 fim
         );
+    }
+
+    @Transactional
+    public String garantirCodigoConfirmacao(Long eventoId) {
+        Evento evento = eventoRepository.findByIdParaAtualizacao(eventoId)
+                .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
+        if (evento.getCodigoConfirmacao() == null) {
+            byte[] bytes = new byte[16];
+            ALEATORIO.nextBytes(bytes);
+            evento.setCodigoConfirmacao(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes));
+        }
+        return evento.getCodigoConfirmacao();
     }
 
     @Transactional

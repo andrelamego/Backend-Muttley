@@ -1,3 +1,7 @@
 # Copie para application-local.properties na raiz de Backend-Muttley.
 # Se usar o MariaDB do Compose, informe o MUTTLEY_DB_PASSWORD de Infra-Muttley/.env.
 spring.datasource.password=defina-a-senha-local
+
+# Chave de assinatura do JWT, com pelo menos 32 bytes. Gere uma aleatória, por exemplo:
+# openssl rand -base64 48   (disponível no Git Bash)
+muttley.jwt.secret=defina-uma-chave-aleatoria-de-pelo-menos-32-bytes

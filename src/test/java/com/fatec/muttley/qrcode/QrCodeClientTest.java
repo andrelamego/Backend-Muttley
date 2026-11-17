@@ -30,7 +30,7 @@ class QrCodeClientTest {
         servidor.start();
         try {
             var client = new QrCodeClient("http://127.0.0.1:" + servidor.getAddress().getPort());
-            var request = new QrCodeRequest(10L, "https://muttley.example.invalid", "Evento", TipoQrCode.CONFIRMACAO);
+            var request = new QrCodeRequest(10L, "https://muttley.example.invalid", "Evento", TipoQrCode.CONFIRMACAO, "codigo");
             assertThat(client.gerarQrCode(request)).containsExactly(png);
             assertThat(metodo.get()).isEqualTo("POST");
             assertThat(new ObjectMapper().readValue(requestRecebido.get(), QrCodeRequest.class)).isEqualTo(request);
@@ -46,7 +46,7 @@ class QrCodeClientTest {
         servidor.start();
         try {
             var client = new QrCodeClient("http://127.0.0.1:" + servidor.getAddress().getPort());
-            assertThatThrownBy(() -> client.gerarQrCode(new QrCodeRequest(10L, "https://example.invalid", "Evento", TipoQrCode.INSCRICAO)))
+            assertThatThrownBy(() -> client.gerarQrCode(new QrCodeRequest(10L, "https://example.invalid", "Evento", TipoQrCode.INSCRICAO, null)))
                     .isInstanceOf(RestClientResponseException.class);
         } finally { servidor.stop(0); }
     }

@@ -320,7 +320,8 @@ public class EventoController {
 
     private ResponseEntity<byte[]> gerarQrCode(Evento evento, TipoQrCode tipo) {
         try {
-            byte[] imagem = qrCodeClient.gerarQrCode(new QrCodeRequest(evento.getId(), frontendUrl, evento.getTema(), tipo));
+            String codigo = tipo == TipoQrCode.CONFIRMACAO ? eventoService.garantirCodigoConfirmacao(evento.getId()) : null;
+            byte[] imagem = qrCodeClient.gerarQrCode(new QrCodeRequest(evento.getId(), frontendUrl, evento.getTema(), tipo, codigo));
             String finalidade = tipo == TipoQrCode.INSCRICAO ? "inscricao" : "confirmacao";
             String nomeArquivo = "qrcode-" + finalidade + "-" + evento.getTema()
                     .replaceAll("[^\\p{L}\\p{N}]+", "-").replaceAll("(^-|-$)", "").toLowerCase() + ".png";
@@ -423,9 +424,10 @@ public class EventoController {
     @Transactional
     public ResponseEntity<String> confirmarPresenca(
             @Parameter(description = "ID do evento") @PathVariable Long eventoId,
-            @Parameter(description = "CPF válido do participante") @PathVariable @ValidCpf String cpf) {
+            @Parameter(description = "CPF válido do participante") @PathVariable @ValidCpf String cpf,
+            @Parameter(description = "Código do QR de confirmação") @RequestParam String codigo) {
 
-        Participacao participacao = participacaoService.confirmarPresenca(eventoId, cpf);
+        Participacao participacao = participacaoService.confirmarPresenca(eventoId, cpf, codigo);
         medalhaService.gerarMedalhaBronzePorPresenca(participacao);
         return ResponseEntity.ok("Presença confirmada com sucesso!");
     }

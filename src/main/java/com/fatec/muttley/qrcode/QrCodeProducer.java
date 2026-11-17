@@ -31,7 +31,8 @@ public class QrCodeProducer {
                 evento.getId(),
                 baseUrl,
                 evento.getTema(),
-                tipo
+                tipo,
+                null
         );
 
         String chave = evento.getId() + "-" + tipo.name();
