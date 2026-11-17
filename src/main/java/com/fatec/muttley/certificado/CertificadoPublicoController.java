@@ -64,7 +64,7 @@ public class CertificadoPublicoController {
             HttpServletRequest request) {
         Certificado certificado = buscarCertificado(codigo);
         return ResponseEntity.ok(Map.of(
-                "certificado", certificado,
+                "certificado", CertificadoPublicoResponse.de(certificado),
                 "linkedinUrl", montarUrlLinkedIn(certificado, request)
         ));
     }
