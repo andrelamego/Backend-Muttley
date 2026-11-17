@@ -32,7 +32,7 @@ class ParticipacaoServiceTest {
     final InscricaoPublicaRequest request = new InscricaoPublicaRequest(" Nome novo ", " 529.982.247-25 ", " TESTE@EXAMPLE.INVALID ");
     private void eventoAberto() { when(eventos.procurarPorIdParaAtualizacao(10L)).thenReturn(Optional.of(evento(CRIADO))); }
     private void janelaPresenca() {
-        Evento e=evento(EM_ANDAMENTO);e.setData(LocalDate.now());e.setHorarioInicio("00:00");e.setHorarioFim("23:59");e.setCodigoConfirmacao("codigo");
+        Evento e=evento(EM_ANDAMENTO);e.setData(LocalDate.now());e.setHorarioInicio("00:00");e.setHorarioFim("23:59");
         when(eventos.procurarPorIdParaAtualizacao(10L)).thenReturn(Optional.of(e));
     }
     private void salvar() {
@@ -95,34 +95,30 @@ class ParticipacaoServiceTest {
         janelaPresenca();
         Participacao p=participacao(1,false);
         when(pessoas.procurarPorCpf("cpf")).thenReturn(Optional.of(p.getPessoa()));
+        when(repository.existsByEventoIdAndPessoaId(10L,1L)).thenReturn(true);
         when(repository.findByEventoIdAndPessoaId(10L,1L)).thenReturn(Optional.of(p));
         when(repository.save(p)).thenReturn(p);
-        assertThat(service.confirmarPresenca(10L,"cpf","codigo").isPresente()).isTrue();
+        assertThat(service.confirmarPresenca(10L,"cpf").isPresente()).isTrue();
         verify(repository).save(p);
     }
     @Test void presencaDuplicadaRetorna409SemNovaGravacao() {
         janelaPresenca();
         Participacao p=participacao(1,true);
         when(pessoas.procurarPorCpf("cpf")).thenReturn(Optional.of(p.getPessoa()));
+        when(repository.existsByEventoIdAndPessoaId(10L,1L)).thenReturn(true);
         when(repository.findByEventoIdAndPessoaId(10L,1L)).thenReturn(Optional.of(p));
-        assertStatus(409, () -> service.confirmarPresenca(10L,"cpf","codigo"));
+        assertStatus(409, () -> service.confirmarPresenca(10L,"cpf"));
         verify(repository,never()).save(any());
     }
     @Test void presencaSemInscricaoRetorna404() {
         janelaPresenca();
         when(pessoas.procurarPorCpf("cpf")).thenReturn(Optional.of(pessoa(1)));
-        assertStatus(404, () -> service.confirmarPresenca(10L,"cpf","codigo"));
+        assertStatus(404, () -> service.confirmarPresenca(10L,"cpf"));
         verify(repository,never()).save(any());
-    }
-    @ParameterizedTest @NullSource @ValueSource(strings={"errado",""})
-    void presencaComCodigoErradoRetorna404SemConsultarPessoa(String codigo) {
-        janelaPresenca();
-        assertStatus(404, () -> service.confirmarPresenca(10L,"cpf",codigo));
-        verifyNoInteractions(pessoas,repository);
     }
     @Test void presencaSemPessoaFalhaSemGravar() {
         janelaPresenca();
-        assertStatus(404, () -> service.confirmarPresenca(10L,"cpf","codigo"));
+        assertThatThrownBy(() -> service.confirmarPresenca(10L,"cpf")).isInstanceOf(EntityNotFoundException.class);
         verifyNoInteractions(repository);
     }
     @Test void RN_PAR_12_crudExigePessoaExistente() {

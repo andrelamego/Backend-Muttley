@@ -76,7 +76,7 @@ public class ParticipacaoController {
     @PostMapping
     public ResponseEntity<Map<String, String>> criar(@RequestBody @Valid AtualizacaoParticipacao dto) {
         acesso.validarPessoa(dto.pessoaId());
-        Participacao participacaoSalva = participacaoService.salvarOuAtualizar(acesso.restringir(dto.withId(null), null));
+        Participacao participacaoSalva = participacaoService.salvarOuAtualizar(dto.withId(null));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("message", "Participação '" + participacaoSalva.getInscricao() + "' criada com sucesso."));
     }
@@ -98,7 +98,8 @@ public class ParticipacaoController {
                 .orElseThrow(() -> new EntityNotFoundException("Participação não encontrada."));
         acesso.validarParticipacao(existente);
         acesso.validarPessoa(dto.pessoaId());
-        Participacao participacaoSalva = participacaoService.salvarOuAtualizar(acesso.restringir(dto.withId(id), existente));
+        dto = dto.withId(id);
+        Participacao participacaoSalva = participacaoService.salvarOuAtualizar(dto);
         return ResponseEntity.ok(Map.of("message", "Participação '" + participacaoSalva.getInscricao() + "' alterada com sucesso."));
     }
 

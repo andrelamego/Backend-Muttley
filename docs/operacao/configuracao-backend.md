@@ -12,7 +12,7 @@ if (-not (Test-Path application-local.properties)) {
 }
 ```
 
-Edite `spring.datasource.password` nesse arquivo com a senha do banco. Para usar o MariaDB do Compose, ela deve corresponder a `MUTTLEY_DB_PASSWORD` em `Infra-Muttley/.env`. Defina também `muttley.jwt.secret` com uma chave aleatória de pelo menos 32 bytes; a API não inicia sem ela, para que nenhum token seja assinado com uma chave publicada no repositório. Depois execute `mvn spring-boot:run`.
+Edite `spring.datasource.password` nesse arquivo com a senha do banco. Para usar o MariaDB do Compose, ela deve corresponder a `MUTTLEY_DB_PASSWORD` em `Infra-Muttley/.env`. Depois execute `mvn spring-boot:run`.
 
 O arquivo local é importado automaticamente quando a API é executada a partir da raiz do backend e está ignorado pelo Git. Se precisar alterar outros valores apenas nessa máquina, adicione suas propriedades nele; por exemplo, `app.frontend.url=http://localhost:5174`. Evite guardar credenciais em `src/main/resources/application.properties`.
 
