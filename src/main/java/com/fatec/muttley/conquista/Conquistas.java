@@ -52,8 +52,20 @@ public final class Conquistas {
             return new Semestre(data.getYear(), data.getMonthValue() <= 6 ? 1 : 2);
         }
 
+        public LocalDate inicio() {
+            return periodo == 1 ? LocalDate.of(ano, 1, 1) : LocalDate.of(ano, 7, 1);
+        }
+
         public LocalDate fim() {
             return periodo == 1 ? LocalDate.of(ano, 6, 30) : LocalDate.of(ano, 12, 31);
+        }
+
+        public Semestre anterior() {
+            return periodo == 1 ? new Semestre(ano - 1, 2) : new Semestre(ano, 1);
+        }
+
+        public boolean contem(LocalDate data) {
+            return data != null && !data.isBefore(inicio()) && !data.isAfter(fim());
         }
 
         public boolean encerradoEm(LocalDate hoje) {

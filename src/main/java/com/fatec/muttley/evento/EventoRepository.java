@@ -1,6 +1,7 @@
 package com.fatec.muttley.evento;
 
 import com.fatec.muttley.evento.enums.StatusEventoEnum;
+import com.fatec.muttley.painel.EstatisticaEvento;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
 import java.util.List;
@@ -73,4 +74,25 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
             @Param("inicio") LocalDate inicio,
             @Param("fim") LocalDate fim
     );
+
+    /** Cada evento não cancelado com inscritos e presentes, sem contar palestrantes. */
+    @Query("""
+            select new com.fatec.muttley.painel.EstatisticaEvento(
+                evento.id, evento.tema, evento.data, evento.horarioInicio, evento.horarioFim, evento.status,
+                disciplina.nome, local.capacidade,
+                sum(case when participacao.id is not null
+                          and (participacao.tipo is null or lower(participacao.tipo) <> 'palestrante')
+                         then 1 else 0 end),
+                sum(case when participacao.presente = true
+                          and (participacao.tipo is null or lower(participacao.tipo) <> 'palestrante')
+                         then 1 else 0 end))
+            from Evento evento
+            left join evento.disciplina disciplina
+            left join evento.local local
+            left join evento.participacoes participacao
+            where evento.status <> com.fatec.muttley.evento.enums.StatusEventoEnum.CANCELADO
+            group by evento.id, evento.tema, evento.data, evento.horarioInicio, evento.horarioFim,
+                     evento.status, disciplina.nome, local.capacidade
+            """)
+    List<EstatisticaEvento> findEstatisticasDosEventos();
 }

@@ -76,4 +76,7 @@ public interface CertificadoRepository extends JpaRepository<Certificado, Long> 
 
         long getTotal();
     }
+
+    @Query("select certificado.dataEmissao from Certificado certificado where certificado.dataEmissao >= :desde")
+    List<LocalDate> findDatasDeEmissaoDesde(LocalDate desde);
 }
