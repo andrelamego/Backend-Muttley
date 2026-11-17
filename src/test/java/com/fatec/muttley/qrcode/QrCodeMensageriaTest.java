@@ -42,7 +42,7 @@ class QrCodeMensageriaTest {
         KafkaTemplate<String,QrCodeRequest> kafka=mock(KafkaTemplate.class);var producer=new QrCodeProducer(kafka);var e=evento(CRIADO);
         if(tipo==TipoQrCode.INSCRICAO)producer.publicarQrCodeInscricao(e,"https://example.invalid");
         else producer.publicarQrCodeConfirmacao(e,"https://example.invalid");
-        verify(kafka).send("qrcode.gerar.request","10-"+tipo,new QrCodeRequest(10L,"https://example.invalid",e.getTema(),tipo,null));
+        verify(kafka).send("qrcode.gerar.request","10-"+tipo,new QrCodeRequest(10L,"https://example.invalid",e.getTema(),tipo));
     }
     @ParameterizedTest @EnumSource(TipoQrCode.class)
     void responseAtualizaSomenteUrlCorrespondente(TipoQrCode tipo) throws Exception {

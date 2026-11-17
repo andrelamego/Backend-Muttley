@@ -33,16 +33,6 @@ public class ParticipacaoAcessoService {
         validarPessoa(participacao.getPessoa().getId());
     }
 
-    // Tipo e número de inscrição saem no certificado: só o admin escolhe.
-    public AtualizacaoParticipacao restringir(AtualizacaoParticipacao dto, Participacao existente) {
-        if (administrador()) {
-            return dto;
-        }
-        return existente == null
-                ? new AtualizacaoParticipacao(dto.id(), dto.inscricao(), "Participante", dto.pessoaId(), dto.eventoId())
-                : new AtualizacaoParticipacao(dto.id(), existente.getInscricao(), existente.getTipo(), dto.pessoaId(), dto.eventoId());
-    }
-
     private Authentication autenticacao() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof Jwt)) {

@@ -4,6 +4,5 @@ public record QrCodeRequest(
         Long eventoId,
         String baseUrl,
         String tema,
-        TipoQrCode tipo,
-        String codigo
+        TipoQrCode tipo
 ) {}

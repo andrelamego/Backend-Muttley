@@ -48,7 +48,7 @@ class AutorizacaoHttpTest {
     }
     @ParameterizedTest @ValueSource(strings={"/api/eventos","/api/eventos/10","/api/inicio","/api/certificados/codigo","/api/certificados/codigo/download","/v3/api-docs","/swagger-ui.html","/swagger-ui/index.html"})
     void consultasPublicasDispensamAutenticacao(String path) throws Exception { mvc.perform(get(path)).andExpect(status().isOk()); }
-    @ParameterizedTest @ValueSource(strings={"/api/auth/login","/api/auth/register","/api/eventos/10/inscricoes","/api/eventos/10/confirmar-presenca/52998224725?codigo=x"})
+    @ParameterizedTest @ValueSource(strings={"/api/auth/login","/api/auth/register","/api/eventos/10/inscricoes","/api/eventos/10/confirmar-presenca/52998224725"})
     void operacoesPublicasDispensamAutenticacao(String path) throws Exception { mvc.perform(post(path)).andExpect(status().isOk()); }
     @ParameterizedTest @ValueSource(strings={"/api/admin/eventos","/api/me","/api/me/certificados","/api/me/participacoes","/api/me/medalhas","/api/participacoes"})
     void rotasProtegidasSemTokenRetornam401(String path) throws Exception { mvc.perform(get(path)).andExpect(status().isUnauthorized()); }
