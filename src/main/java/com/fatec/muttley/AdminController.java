@@ -4,6 +4,8 @@ import com.fatec.muttley.certificado.CertificadoRepository;
 import com.fatec.muttley.certificado.CertificadoService;
 import com.fatec.muttley.evento.EventoService;
 import com.fatec.muttley.conquista.ConquistaService;
+import com.fatec.muttley.painel.PainelAdmin;
+import com.fatec.muttley.painel.PainelAdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -33,8 +35,12 @@ public class AdminController {
 
     private final ConquistaService conquistaService;
 
+    private final PainelAdminService painelAdminService;
+
     @Operation(summary = "Carregar dados e estatísticas do painel administrativo",
-            description = "Retorna os próximos eventos, gráficos de certificados emitidos, destaques do semestre e métricas dos últimos 30 dias.")
+            description = "Retorna os próximos eventos, certificados emitidos, destaques do semestre, métricas dos últimos 30 dias, "
+                    + "eventos de hoje, indicadores do semestre e do anterior, ocupação, presença recente, série mensal, "
+                    + "presenças por disciplina e inscritos sem conta.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Estatísticas recuperadas com sucesso"),
             @ApiResponse(responseCode = "401", description = "Não autenticado"),
@@ -69,6 +75,16 @@ public class AdminController {
         response.put("variacaoCertificadosUltimos30Dias", calcularVariacaoPercentual(certificadosUltimos30Dias, certificadosPeriodoAnterior));
         response.put("eventosAtivos", eventoService.contarEventosAtivos());
         response.put("eventosAtivosNaSemana", eventoService.contarEventosAtivosNoPeriodo(hoje, hoje.plusDays(7)));
+
+        PainelAdmin.Resultado painel = painelAdminService.montar();
+        response.put("hoje", painel.hoje());
+        response.put("semestre", painel.semestre());
+        response.put("semestreAnterior", painel.semestreAnterior());
+        response.put("ocupacao", painel.ocupacao());
+        response.put("presencaRecentes", painel.presencaRecentes());
+        response.put("serieMensal", painel.serieMensal());
+        response.put("porDisciplina", painel.porDisciplina());
+        response.put("pessoasSemConta", painel.pessoasSemConta());
 
         return ResponseEntity.ok(response);
     }

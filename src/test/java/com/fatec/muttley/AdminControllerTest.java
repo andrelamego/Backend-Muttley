@@ -3,6 +3,9 @@ package com.fatec.muttley;
 import com.fatec.muttley.evento.EventoService;
 import com.fatec.muttley.certificado.*;
 import com.fatec.muttley.conquista.ConquistaService;
+import com.fatec.muttley.painel.PainelAdmin;
+import com.fatec.muttley.painel.PainelAdminService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,6 +20,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AdminControllerTest {
     @Mock EventoService eventos; @Mock CertificadoService certificados; @Mock ConquistaService conquistas;
+    @Mock PainelAdminService painel;
+    final PainelAdmin.Resultado vazio = PainelAdmin.montar(List.of(), List.of(), LocalDate.of(2026, 11, 15), 3);
+    @BeforeEach void painelVazio() { lenient().when(painel.montar()).thenReturn(vazio); }
     @InjectMocks AdminController controller;
     @ParameterizedTest @CsvSource({"0,0,0","5,0,100","15,10,50","5,10,-50","0,10,-100","10,10,0","4,3,33"})
     void dashboardCalculaVariacaoEPeriodos(long atual,long anterior,long esperado) {
@@ -42,5 +48,12 @@ class AdminControllerTest {
         assertThat(body.get("certificadosPorEvento")).isEqualTo(List.of(
                 new AdminController.BarraEstatistica("Maior",100L,100),new AdminController.BarraEstatistica("Menor",1L,6)));
         verify(conquistas).destaquesDoSemestre(5);
+    }
+    @Test void dashboardIncluiOPainelCalculado() {
+        var body=controller.carregarEstatisticasAdmin().getBody();
+        assertThat(body).containsEntry("pessoasSemConta", 3L)
+                .containsEntry("semestre", vazio.semestre())
+                .containsEntry("serieMensal", vazio.serieMensal())
+                .containsKeys("hoje", "semestreAnterior", "ocupacao", "presencaRecentes", "porDisciplina");
     }
 }

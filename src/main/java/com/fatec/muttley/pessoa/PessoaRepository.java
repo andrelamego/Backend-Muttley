@@ -24,4 +24,7 @@ public interface PessoaRepository extends JpaRepository<Pessoa, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Pessoa> findWithLockByCadastroTokenHash(String cadastroTokenHash);
+
+    /** Inscritos pela página pública que ainda não criaram senha. */
+    long countBySenhaIsNull();
 }
