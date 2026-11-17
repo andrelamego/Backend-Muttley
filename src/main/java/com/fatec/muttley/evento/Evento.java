@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fatec.muttley.disciplina.Disciplina;
 import com.fatec.muttley.evento.enums.ModalidadeEventoEnum;
@@ -57,6 +58,11 @@ public class Evento {
 
     @Column(name = "qr_code_confirmacao_url")
     private String qrCodeConfirmacaoUrl;
+
+    // Vai no QR de confirmação e prova que quem confirma está no local.
+    @JsonIgnore
+    @Column(name = "codigo_confirmacao", length = 32)
+    private String codigoConfirmacao;
 
     private String descricao;
 
