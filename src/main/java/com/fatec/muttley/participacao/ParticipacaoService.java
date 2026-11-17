@@ -8,6 +8,8 @@ import com.fatec.muttley.pessoa.Pessoa;
 import com.fatec.muttley.pessoa.PessoaService;
 import com.fatec.muttley.pessoa.Role;
 import jakarta.persistence.EntityNotFoundException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -183,9 +185,12 @@ public class ParticipacaoService {
     }
 
     @Transactional
-    public Participacao confirmarPresenca(Long eventoId, String cpf) {
+    public Participacao confirmarPresenca(Long eventoId, String cpf, String codigo) {
         Evento evento = eventoService.procurarPorIdParaAtualizacao(eventoId)
                 .orElseThrow(() -> new EntityNotFoundException("Evento não encontrado."));
+        if (!codigoConfere(evento.getCodigoConfirmacao(), codigo)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Código de confirmação inválido. Leia o QR Code exibido no evento.");
+        }
         LocalDateTime agora = LocalDateTime.now(clock);
         LocalDateTime inicio = LocalDateTime.of(evento.getData(), LocalTime.parse(evento.getHorarioInicio())).minusMinutes(10);
         LocalDateTime fim = LocalDateTime.of(evento.getData(), LocalTime.parse(evento.getHorarioFim())).plusMinutes(10);
@@ -193,14 +198,9 @@ public class ParticipacaoService {
                 || agora.isBefore(inicio) || agora.isAfter(fim)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Confirmação de presença fora do período permitido.");
         }
-        Pessoa pessoa = pessoaService.procurarPorCpf(cpf)
-                .orElseThrow(() -> new EntityNotFoundException("Pessoa não encontrada com o cpf: " + cpf));
-
-        if(!participacaoRepository.existsByEventoIdAndPessoaId(eventoId, pessoa.getId())){
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Você não está inscrito nesse evento.");
-        }
-
-        Participacao participacao = participacaoRepository.findByEventoIdAndPessoaId(eventoId, pessoa.getId())
+        // Mesma resposta para CPF desconhecido e não inscrito, para não revelar quem tem cadastro.
+        Participacao participacao = pessoaService.procurarPorCpf(cpf)
+                .flatMap(pessoa -> participacaoRepository.findByEventoIdAndPessoaId(eventoId, pessoa.getId()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Você não está inscrito nesse evento."));
 
         if (participacao.isPresente()) {
@@ -248,6 +248,11 @@ public class ParticipacaoService {
             pessoa.setRole(Role.USER);
         }
         return pessoaService.salvar(pessoa);
+    }
+
+    private static boolean codigoConfere(String esperado, String informado) {
+        return esperado != null && informado != null
+                && MessageDigest.isEqual(esperado.getBytes(StandardCharsets.UTF_8), informado.getBytes(StandardCharsets.UTF_8));
     }
 
     private String normalizar(String valor) {

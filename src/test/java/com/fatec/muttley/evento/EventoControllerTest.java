@@ -123,20 +123,21 @@ class EventoControllerTest {
         try(var arquivos=Files.list(diretorio)) { assertThat(arquivos).isEmpty(); }
     }
     @Test void RF_PAR_04_confirmacaoDePresencaSoRegistraAPresenca() {
-        when(participacoes.confirmarPresenca(10L,"cpf")).thenReturn(participacao(1,true));
-        assertThat(controller.confirmarPresenca(10L,"cpf").getStatusCode().value()).isEqualTo(200);
-        verify(participacoes).confirmarPresenca(10L,"cpf");
+        when(participacoes.confirmarPresenca(10L,"cpf","codigo")).thenReturn(participacao(1,true));
+        assertThat(controller.confirmarPresenca(10L,"cpf","codigo").getStatusCode().value()).isEqualTo(200);
+        verify(participacoes).confirmarPresenca(10L,"cpf","codigo");
     }
     @ParameterizedTest @ValueSource(booleans={true,false})
     void RF_EVT_09_downloadDosDoisQrCodesRetornaPngComoAnexo(boolean inscricao) {
         Evento e=evento(CRIADO);
         when(eventos.procurarPorId(10L)).thenReturn(Optional.of(e)); when(qrClient.gerarQrCode(any())).thenReturn(new byte[]{1,2});
+        if(!inscricao) when(eventos.garantirCodigoConfirmacao(10L)).thenReturn("codigo");
         var response=inscricao?controller.baixarQrCodeInscricao(10L):controller.baixarQrCodeConfirmacao(10L);
         assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.IMAGE_PNG);
         assertThat(response.getHeaders().getContentDisposition().getType()).isEqualTo("attachment");
         assertThat(response.getBody()).containsExactly((byte)1,(byte)2);
         verify(qrClient).gerarQrCode(new QrCodeRequest(10L,"https://muttley.example.invalid",e.getTema(),
-                inscricao ? TipoQrCode.INSCRICAO : TipoQrCode.CONFIRMACAO));
+                inscricao ? TipoQrCode.INSCRICAO : TipoQrCode.CONFIRMACAO, inscricao ? null : "codigo"));
     }
     @Test void qrCodeSemUrlPersistidaTambemPodeSerGerado() {
         when(eventos.procurarPorId(10L)).thenReturn(Optional.of(evento(CRIADO)));
